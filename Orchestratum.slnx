@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Orchestratum.MediatR/Orchestratum.MediatR.csproj" />
+    <Project Path="src/Orchestratum/Orchestratum.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Orchestratum.Example/Orchestratum.Example.csproj" />
+    <Project Path="tests/Orchestratum.Tests/Orchestratum.Tests.csproj" />
+  </Folder>
+</Solution>

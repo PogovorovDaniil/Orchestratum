@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFramework>net10.0</TargetFramework>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+
+	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+	<PackageId>Orchestratum</PackageId>
+	<Version>1.0.1-beta</Version>
+	<Authors>Daniil Pogovorov</Authors>
+
+	<Description>A lightweight, persistent background task orchestrator for .NET applications with built-in retry logic, timeouts, and database persistence using Entity Framework Core.</Description>
+	<PackageTags>orchestrator;background-tasks;task-queue;persistence;retry;timeout;entity-framework;distributed;job-queue</PackageTags>
+	  
+	<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+	<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+
+	<PackageProjectUrl>https://github.com/PogovorovDaniil/Orchestratum</PackageProjectUrl>
+	<RepositoryUrl>https://github.com/PogovorovDaniil/Orchestratum</RepositoryUrl>
+	<RepositoryType>git</RepositoryType>
+
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<PackageIcon>icon.png</PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<None Include="README.md" Pack="true" PackagePath="" />
+	<None Include="README.ru.md" Pack="true" PackagePath="" />
+    <None Include="../../LICENSE.txt" Pack="true" PackagePath="" />
+    <None Include="../../icon.png" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<PackageReference Include="Microsoft.EntityFrameworkCore" Version="[10.0.0, )" />
+	<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="[10.0.0, )" />
+	<PackageReference Include="Microsoft.Extensions.Options" Version="[10.0.0, )" />
+	<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.0.0, )" />
+	<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="[10.0.0, )" />
+  </ItemGroup>
+</Project>
