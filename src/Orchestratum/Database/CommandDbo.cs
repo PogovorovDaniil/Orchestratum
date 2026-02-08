@@ -4,10 +4,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Orchestratum.Database;
 
 /// <summary>
-/// Database entity representing an orchestrator command.
+/// Database entity representing an orchestratum command.
 /// </summary>
-[Table("orchestrator_commands")]
-public class OrchestratorCommandDbo
+[Table("orchestratum_commands")]
+public class CommandDbo
 {
     /// <summary>
     /// Unique identifier for the command.
@@ -21,6 +21,12 @@ public class OrchestratorCommandDbo
     /// </summary>
     [Column("executor")]
     public required string Executor { get; set; }
+
+    /// <summary>
+    /// The key of the target server instance that is currently responsible for processing this command.
+    /// </summary>
+    [Column("target")]
+    public required string Target { get; set; }
 
     /// <summary>
     /// The assembly-qualified name of the data type for deserialization.
@@ -75,4 +81,10 @@ public class OrchestratorCommandDbo
     /// </summary>
     [Column("is_failed")]
     public bool IsFailed { get; set; }
+
+    /// <summary>
+    /// Time when the command was failed.
+    /// </summary>
+    [Column("failed_at")]
+    public DateTimeOffset? FailedAt { get; set; }
 }

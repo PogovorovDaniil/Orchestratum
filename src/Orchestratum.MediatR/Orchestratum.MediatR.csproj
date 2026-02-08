@@ -8,7 +8,7 @@
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 
 	<PackageId>Orchestratum.MediatR</PackageId>
-	<Version>1.0.1-beta</Version>
+	<Version>1.0.2-beta</Version>
 	<Authors>Daniil Pogovorov</Authors>
 
 	<Description>MediatR integration extension for Orchestratum. Enables seamless integration of MediatR requests with the persistent task orchestrator, allowing you to queue MediatR commands as background tasks.</Description>
@@ -34,7 +34,7 @@
 
   <ItemGroup>
 	<PackageReference Include="MediatR" Version="[12.5.0, )" />
-	<PackageReference Include="Orchestratum" Version="1.0.1-beta" />
+	<PackageReference Include="Orchestratum" Version="1.0.2-beta" />
   </ItemGroup>
 
 </Project>

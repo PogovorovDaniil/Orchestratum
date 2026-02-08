@@ -14,7 +14,7 @@ public abstract class PostgreSqlTestBase : IAsyncLifetime
 
     protected string ConnectionString => Fixture.ConnectionString;
 
-    internal DbContextOptions<OrchestratorDbContext> CreateDbContextOptions()
+    internal DbContextOptions<OrchestratumDbContext> CreateDbContextOptions()
     {
         return Fixture.CreateDbContextOptions();
     }

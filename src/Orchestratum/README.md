@@ -35,7 +35,7 @@ using Microsoft.EntityFrameworkCore;
 var builder = Host.CreateDefaultBuilder(args);
 builder.ConfigureServices(services =>
 {
-    services.AddOchestrator((sp, opts) => opts
+    services.AddOrchestratum((sp, opts) => opts
         .ConfigureDbContext(opts => 
             opts.UseNpgsql("Host=localhost;Database=myapp"))
         .RegisterExecutor("my-task", async (serviceProvider, data, cancellationToken) =>
@@ -54,20 +54,20 @@ builder.Build().Run();
 ```csharp
 public class MyService
 {
-    private readonly IOrchestrator _orchestrator;
+    private readonly IOrchestratum _orchestratum;
 
-    public MyService(IOrchestrator orchestrator)
+    public MyService(IOrchestratum orchestratum)
     {
-        _orchestrator = orchestrator;
+        _orchestratum = orchestratum;
     }
 
     public async Task EnqueueWork()
     {
         // Enqueue a task with default timeout and retry settings
-        await _orchestrator.Append("my-task", new MyTaskData { Value = "Hello" });
+        await _orchestratum.Append("my-task", new MyTaskData { Value = "Hello" });
 
         // Enqueue with custom timeout and retry count
-        await _orchestrator.Append(
+        await _orchestratum.Append(
             "my-task", 
             new MyTaskData { Value = "World" },
             timeout: TimeSpan.FromMinutes(5),
@@ -82,7 +82,7 @@ public class MyService
 The orchestrator provides several configuration options:
 
 ```csharp
-services.AddOchestrator((sp, opts) => opts
+services.AddOrchestratum((sp, opts) => opts
     .ConfigureDbContext(opts => opts.UseNpgsql(connectionString))
     .RegisterExecutor("executor-key", executorDelegate)
     .With(o =>
@@ -116,7 +116,7 @@ Any database supported by Entity Framework Core can be used:
 
 ### Creating Migrations
 
-Since `OrchestratorDbContext` is in the library, you need to create a design-time factory in your main project to enable migrations:
+Since `OrchestratumDbContext` is in the library, you need to create a design-time factory in your main project to enable migrations:
 
 **Step 1:** Create a factory class in your project:
 
@@ -127,17 +127,17 @@ using Orchestratum.Database;
 
 namespace YourProject.Database;
 
-public class OrchestratorDbContextFactory : IDesignTimeDbContextFactory<OrchestratorDbContext>
+public class OrchestratumDbContextFactory : IDesignTimeDbContextFactory<OrchestratumDbContext>
 {
-    public OrchestratorDbContext CreateDbContext(string[] args)
+    public OrchestratumDbContext CreateDbContext(string[] args)
     {
-        var optionsBuilder = new DbContextOptionsBuilder<OrchestratorDbContext>();
+        var optionsBuilder = new DbContextOptionsBuilder<OrchestratumDbContext>();
         
         // Configure your database provider
         optionsBuilder.UseNpgsql("Host=localhost;Database=myapp;Username=user;Password=pass", 
-            opts => opts.MigrationsAssembly(typeof(OrchestratorDbContextFactory).Assembly.GetName().Name));
+            opts => opts.MigrationsAssembly(typeof(OrchestratumDbContextFactory).Assembly.GetName().Name));
 
-        return new OrchestratorDbContext(optionsBuilder.Options);
+        return new OrchestratumDbContext(optionsBuilder.Options);
     }
 }
 ```
@@ -146,18 +146,18 @@ public class OrchestratorDbContextFactory : IDesignTimeDbContextFactory<Orchestr
 
 ```bash
 # Add migration
-dotnet ef migrations add InitialOrchestrator --context OrchestratorDbContext
+dotnet ef migrations add InitialOrchestratum --context OrchestratumDbContext
 
 # Apply migration
-dotnet ef database update --context OrchestratorDbContext
+dotnet ef database update --context OrchestratumDbContext
 
 # Remove last migration (if needed)
-dotnet ef migrations remove --context OrchestratorDbContext
+dotnet ef migrations remove --context OrchestratumDbContext
 ```
 
 ### Database Schema
 
-The orchestrator stores commands in a table named `orchestrator_commands` with the following columns:
+The orchestrator stores commands in a table named `orchestratum_commands` with the following columns:
 - `id` - Unique command identifier (GUID)
 - `executor` - Executor key
 - `data_type` - Serialized data type
@@ -176,7 +176,7 @@ The orchestrator stores commands in a table named `orchestrator_commands` with t
 You can register multiple executors for different task types:
 
 ```csharp
-services.AddOchestrator((sp, opts) => opts
+services.AddOrchestratum((sp, opts) => opts
     .ConfigureDbContext(opts => opts.UseNpgsql(connectionString))
     .RegisterExecutor("send-email", async (sp, data, ct) =>
     {
@@ -198,7 +198,7 @@ Failed tasks are automatically retried based on the configured retry count. Afte
 
 ```csharp
 // This task will be retried 5 times if it fails
-await _orchestrator.Append("my-task", data, retryCount: 5);
+await _orchestratum.Append("my-task", data, retryCount: 5);
 ```
 
 ### Timeout Handling
@@ -207,7 +207,7 @@ Each task can have its own timeout. If a task exceeds the timeout, it will be ma
 
 ```csharp
 // This task will timeout after 10 minutes
-await _orchestrator.Append("long-task", data, timeout: TimeSpan.FromMinutes(10));
+await _orchestratum.Append("long-task", data, timeout: TimeSpan.FromMinutes(10));
 ```
 
 ### Distributed Scenarios

@@ -1,6 +1,6 @@
 namespace Orchestratum.Tests;
 
-public class OrchestratorExceptionTests
+public class OrchestratumExceptionTests
 {
     [Fact]
     public void Constructor_WithMessage_ShouldSetMessage()
@@ -9,7 +9,7 @@ public class OrchestratorExceptionTests
         var message = "Test error message";
 
         // Act
-        var exception = new OrchestratorException(message);
+        var exception = new OrchestratumException(message);
 
         // Assert
         exception.Message.Should().Be(message);
@@ -23,7 +23,7 @@ public class OrchestratorExceptionTests
         var innerException = new InvalidOperationException("Inner exception");
 
         // Act
-        var exception = new OrchestratorException(message, innerException);
+        var exception = new OrchestratumException(message, innerException);
 
         // Assert
         exception.Message.Should().Be(message);
@@ -37,8 +37,8 @@ public class OrchestratorExceptionTests
         var message = "Test error";
 
         // Act & Assert
-        Action act = () => throw new OrchestratorException(message);
-        act.Should().Throw<OrchestratorException>()
+        Action act = () => throw new OrchestratumException(message);
+        act.Should().Throw<OrchestratumException>()
             .WithMessage(message);
     }
 
@@ -52,7 +52,7 @@ public class OrchestratorExceptionTests
         // Act
         try
         {
-            throw new OrchestratorException(message);
+            throw new OrchestratumException(message);
         }
         catch (Exception ex)
         {
@@ -61,6 +61,6 @@ public class OrchestratorExceptionTests
 
         // Assert
         caughtException.Should().NotBeNull();
-        caughtException.Should().BeOfType<OrchestratorException>();
+        caughtException.Should().BeOfType<OrchestratumException>();
     }
 }

@@ -2,16 +2,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Orchestratum.Tests;
 
-public class OrchestratorConfigurationTests : PostgreSqlTestBase, IClassFixture<PostgreSqlFixture>
+public class OrchestratumConfigurationTests : PostgreSqlTestBase, IClassFixture<PostgreSqlFixture>
 {
-    public OrchestratorConfigurationTests(PostgreSqlFixture fixture) : base(fixture)
+    public OrchestratumConfigurationTests(PostgreSqlFixture fixture) : base(fixture)
     {
     }
     [Fact]
     public void RegisterExecutor_ShouldAddExecutor()
     {
         // Arrange
-        var configuration = new OrchestratorConfiguration();
+        var configuration = new OrchestratumConfiguration();
         var executorKey = "test-executor";
         ExecutorDelegate executor = (sp, data, ct) => Task.CompletedTask;
 
@@ -27,7 +27,7 @@ public class OrchestratorConfigurationTests : PostgreSqlTestBase, IClassFixture<
     public void RegisterExecutor_ShouldReturnConfiguration()
     {
         // Arrange
-        var configuration = new OrchestratorConfiguration();
+        var configuration = new OrchestratumConfiguration();
 
         // Act
         var result = configuration.RegisterExecutor("test", (sp, data, ct) => Task.CompletedTask);
@@ -40,7 +40,7 @@ public class OrchestratorConfigurationTests : PostgreSqlTestBase, IClassFixture<
     public void ConfigureDbContext_ShouldSetContextOptions()
     {
         // Arrange
-        var configuration = new OrchestratorConfiguration();
+        var configuration = new OrchestratumConfiguration();
 
         // Act
         configuration.ConfigureDbContext(opts => opts.UseNpgsql(ConnectionString));
@@ -53,7 +53,7 @@ public class OrchestratorConfigurationTests : PostgreSqlTestBase, IClassFixture<
     public void ConfigureDbContext_ShouldReturnConfiguration()
     {
         // Arrange
-        var configuration = new OrchestratorConfiguration();
+        var configuration = new OrchestratumConfiguration();
 
         // Act
         var result = configuration.ConfigureDbContext(opts => opts.UseNpgsql(ConnectionString));
@@ -66,7 +66,7 @@ public class OrchestratorConfigurationTests : PostgreSqlTestBase, IClassFixture<
     public void DefaultValues_ShouldBeSetCorrectly()
     {
         // Arrange & Act
-        var configuration = new OrchestratorConfiguration();
+        var configuration = new OrchestratumConfiguration();
 
         // Assert
         configuration.CommandPollingInterval.Should().Be(TimeSpan.FromMinutes(1));
@@ -79,7 +79,7 @@ public class OrchestratorConfigurationTests : PostgreSqlTestBase, IClassFixture<
     public void PropertySetters_ShouldUpdateValues()
     {
         // Arrange
-        var configuration = new OrchestratorConfiguration();
+        var configuration = new OrchestratumConfiguration();
         var pollingInterval = TimeSpan.FromSeconds(30);
         var lockTimeout = TimeSpan.FromSeconds(5);
         var defaultTimeout = TimeSpan.FromMinutes(5);
@@ -102,7 +102,7 @@ public class OrchestratorConfigurationTests : PostgreSqlTestBase, IClassFixture<
     public void FluentAPI_ShouldAllowChaining()
     {
         // Arrange
-        var configuration = new OrchestratorConfiguration();
+        var configuration = new OrchestratumConfiguration();
 
         // Act
         var result = configuration

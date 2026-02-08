@@ -2,13 +2,13 @@
 
 namespace Orchestratum.Database;
 
-public class OrchestratorDbContext(DbContextOptions<OrchestratorDbContext> contextOptions) : DbContext(contextOptions)
+public class OrchestratumDbContext(DbContextOptions<OrchestratumDbContext> contextOptions) : DbContext(contextOptions)
 {
-    public DbSet<OrchestratorCommandDbo> Commands { get; set; }
+    public DbSet<CommandDbo> Commands { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<OrchestratorCommandDbo>(e =>
+        modelBuilder.Entity<CommandDbo>(e =>
         {
             e.Property(p => p.Id).ValueGeneratedNever();
             e.HasIndex(p => p.IsRunning);

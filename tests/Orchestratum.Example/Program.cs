@@ -1,9 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Orchestratum.MediatR;
 using Orchestratum.Example;
 using Orchestratum.Extentions;
+using Orchestratum.MediatR;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -19,9 +19,13 @@ builder.ConfigureServices(services =>
     services.AddHostedService<Test2HostedService>();
     // services.AddHostedService<Test3HostedService>();
     // services.AddHostedService<Test4HostedService>();
-    services.AddOchestrator((sp, opts) => opts
-        .ConfigureDbContext(opts => opts.UseNpgsql("Host=localhost;Username=root;Password=root;Database=simpleOrchestrator"))
-        .RegisterMediatR());
+    services.AddOchestratum((sp, opts) =>
+    {
+        opts.InstanceKey = "serv1";
+        opts
+            .ConfigureDbContext(opts => opts.UseNpgsql("Host=localhost;Username=root;Password=root;Database=orchestratum_example"))
+            .RegisterMediatR();
+    });
 });
 
 builder.Build().Run();

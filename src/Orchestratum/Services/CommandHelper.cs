@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace Orchestratum.Services;
 
-internal class OrchestratorCommand(Orchestrator orchestrator, Guid commandId) : IDisposable
+internal class CommandHelper(Orchestratum orchestrator, Guid commandId) : IDisposable
 {
     internal Guid CommandId { get; init; } = commandId;
     private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
@@ -19,7 +19,7 @@ internal class OrchestratorCommand(Orchestrator orchestrator, Guid commandId) : 
     public void Run(CancellationToken cancellationToken = default)
     {
         if (IsRunning)
-            throw new OrchestratorException("Cannot start command execution because it is already running.");
+            throw new OrchestratumException("Cannot start command execution because it is already running.");
         runningTask = RunAsync(cancellationToken);
     }
 
@@ -32,7 +32,7 @@ internal class OrchestratorCommand(Orchestrator orchestrator, Guid commandId) : 
     {
         var runCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, disposeCts.Token);
 
-        using var context = new OrchestratorDbContext(orchestrator.contextOptions);
+        using var context = new OrchestratumDbContext(orchestrator.contextOptions);
         try
         {
             var command = await RunLock(context.Commands, orchestrator.lockTimeoutBuffer, runCts.Token);
@@ -40,7 +40,7 @@ internal class OrchestratorCommand(Orchestrator orchestrator, Guid commandId) : 
 
             runCts.CancelAfter(command.Timeout);
 
-            Type dataType = Type.GetType(command.DataType) ?? throw new OrchestratorException(
+            Type dataType = Type.GetType(command.DataType) ?? throw new OrchestratumException(
                     $"Failed to resolve type '{command.DataType}'. Ensure the type name is correct and the assembly is loaded."
                 );
             var data = JsonSerializer.Deserialize(command.Data, dataType)!;
@@ -101,7 +101,7 @@ internal class OrchestratorCommand(Orchestrator orchestrator, Guid commandId) : 
         );
     }
 
-    private async ValueTask<OrchestratorCommandDbo?> RunLock(DbSet<OrchestratorCommandDbo> commandDbos, TimeSpan lockTimeoutBuffer, CancellationToken cancellationToken = default)
+    private async ValueTask<CommandDbo?> RunLock(DbSet<CommandDbo> commandDbos, TimeSpan lockTimeoutBuffer, CancellationToken cancellationToken = default)
     {
         var commandId = CommandId;
         var now = DateTimeOffset.UtcNow;
@@ -119,9 +119,10 @@ internal class OrchestratorCommand(Orchestrator orchestrator, Guid commandId) : 
             .FirstAsync(c => c.Id == commandId);
     }
 
-    private async ValueTask Fail(DbSet<OrchestratorCommandDbo> commandDbos)
+    private async ValueTask Fail(DbSet<CommandDbo> commandDbos)
     {
         var commandId = CommandId;
+        var now = DateTimeOffset.UtcNow;
         await commandDbos
             .Where(c => c.Id == commandId && c.IsRunning && !c.IsCompleted)
             .ExecuteUpdateAsync(s => s
@@ -132,7 +133,8 @@ internal class OrchestratorCommand(Orchestrator orchestrator, Guid commandId) : 
         await commandDbos
             .Where(c => c.Id == commandId && !c.IsFailed && c.RetriesLeft == -1)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(c => c.IsFailed, true));
+                .SetProperty(c => c.IsFailed, true)
+                .SetProperty(c => c.FailedAt, now));
 
         if (await commandDbos.AnyAsync(c => c.Id == CommandId && c.IsFailed))
         {
@@ -141,7 +143,7 @@ internal class OrchestratorCommand(Orchestrator orchestrator, Guid commandId) : 
         }
     }
 
-    private async ValueTask Complete(DbSet<OrchestratorCommandDbo> commandDbos, CancellationToken cancellationToken = default)
+    private async ValueTask Complete(DbSet<CommandDbo> commandDbos, CancellationToken cancellationToken = default)
     {
         var commandId = CommandId;
         var now = DateTimeOffset.UtcNow;

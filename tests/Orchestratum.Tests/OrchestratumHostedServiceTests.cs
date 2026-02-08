@@ -1,12 +1,12 @@
 namespace Orchestratum.Tests;
 
-public class OrchestratorHostedServiceTests
+public class OrchestratumHostedServiceTests
 {
     [Fact]
     public async Task ExecuteAsync_ShouldCallSyncCommandsRepeatedly()
     {
         // Arrange
-        var orchestratorMock = new Mock<IOrchestrator>();
+        var orchestratorMock = new Mock<IOrchestratum>();
         var cts = new CancellationTokenSource();
         int syncCallCount = 0;
 
@@ -29,7 +29,7 @@ public class OrchestratorHostedServiceTests
             .Setup(o => o.WaitPollingInterval(It.IsAny<CancellationToken>()))
             .Returns(Task.Delay(10));
 
-        var hostedService = new Services.OrchestratorHostedService(orchestratorMock.Object);
+        var hostedService = new Services.OrchestratumHostedService(orchestratorMock.Object);
 
         // Act
         await hostedService.StartAsync(cts.Token);
@@ -44,7 +44,7 @@ public class OrchestratorHostedServiceTests
     public async Task ExecuteAsync_ShouldCallRunCommandsRepeatedly()
     {
         // Arrange
-        var orchestratorMock = new Mock<IOrchestrator>();
+        var orchestratorMock = new Mock<IOrchestratum>();
         var cts = new CancellationTokenSource();
         int runCallCount = 0;
 
@@ -67,7 +67,7 @@ public class OrchestratorHostedServiceTests
             .Setup(o => o.WaitPollingInterval(It.IsAny<CancellationToken>()))
             .Returns(Task.Delay(10));
 
-        var hostedService = new Services.OrchestratorHostedService(orchestratorMock.Object);
+        var hostedService = new Services.OrchestratumHostedService(orchestratorMock.Object);
 
         // Act
         await hostedService.StartAsync(cts.Token);
@@ -82,7 +82,7 @@ public class OrchestratorHostedServiceTests
     public async Task ExecuteAsync_ShouldCallWaitPollingIntervalRepeatedly()
     {
         // Arrange
-        var orchestratorMock = new Mock<IOrchestrator>();
+        var orchestratorMock = new Mock<IOrchestratum>();
         var cts = new CancellationTokenSource();
         int waitCallCount = 0;
 
@@ -105,7 +105,7 @@ public class OrchestratorHostedServiceTests
             })
             .Returns(Task.Delay(10));
 
-        var hostedService = new Services.OrchestratorHostedService(orchestratorMock.Object);
+        var hostedService = new Services.OrchestratumHostedService(orchestratorMock.Object);
 
         // Act
         await hostedService.StartAsync(cts.Token);
@@ -120,7 +120,7 @@ public class OrchestratorHostedServiceTests
     public async Task ExecuteAsync_WhenCancelled_ShouldStop()
     {
         // Arrange
-        var orchestratorMock = new Mock<IOrchestrator>();
+        var orchestratorMock = new Mock<IOrchestratum>();
         var cts = new CancellationTokenSource();
 
         orchestratorMock
@@ -134,7 +134,7 @@ public class OrchestratorHostedServiceTests
             .Setup(o => o.WaitPollingInterval(It.IsAny<CancellationToken>()))
             .Returns(Task.Delay(10));
 
-        var hostedService = new Services.OrchestratorHostedService(orchestratorMock.Object);
+        var hostedService = new Services.OrchestratumHostedService(orchestratorMock.Object);
 
         // Act
         await hostedService.StartAsync(cts.Token);
@@ -150,7 +150,7 @@ public class OrchestratorHostedServiceTests
     public async Task ExecuteAsync_ShouldCallMethodsInCorrectOrder()
     {
         // Arrange
-        var orchestratorMock = new Mock<IOrchestrator>();
+        var orchestratorMock = new Mock<IOrchestratum>();
         var cts = new CancellationTokenSource();
         var callSequence = new List<string>();
 
@@ -175,7 +175,7 @@ public class OrchestratorHostedServiceTests
             .Callback(() => callSequence.Add("WaitPollingInterval"))
             .Returns(Task.Delay(10));
 
-        var hostedService = new Services.OrchestratorHostedService(orchestratorMock.Object);
+        var hostedService = new Services.OrchestratumHostedService(orchestratorMock.Object);
 
         // Act
         await hostedService.StartAsync(cts.Token);

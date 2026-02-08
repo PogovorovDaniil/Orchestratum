@@ -35,7 +35,7 @@ public class MaybeErrorHandler : IRequestHandler<MaybeErrorCommand>
 
 
 public record ChainedCommand(int ChainNumber) : IRequest;
-public class ChainedHandler(IOrchestrator orchestrator, ILogger<LogHandler> logger) : IRequestHandler<ChainedCommand>
+public class ChainedHandler(IOrchestratum orchestrator, ILogger<LogHandler> logger) : IRequestHandler<ChainedCommand>
 {
     public async Task Handle(ChainedCommand request, CancellationToken cancellationToken)
     {

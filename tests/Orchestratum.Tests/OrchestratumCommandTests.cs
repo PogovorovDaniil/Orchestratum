@@ -6,12 +6,12 @@ using System.Diagnostics;
 
 namespace Orchestratum.Tests;
 
-public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<PostgreSqlFixture>
+public class OrchestratumCommandTests : PostgreSqlTestBase, IClassFixture<PostgreSqlFixture>
 {
     private readonly ServiceProvider _serviceProvider;
-    private readonly DbContextOptions<OrchestratorDbContext> _dbContextOptions;
+    private readonly DbContextOptions<OrchestratumDbContext> _dbContextOptions;
 
-    public OrchestratorCommandTests(PostgreSqlFixture fixture) : base(fixture)
+    public OrchestratumCommandTests(PostgreSqlFixture fixture) : base(fixture)
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -35,9 +35,9 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
             return Task.CompletedTask;
         });
 
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
         var commandId = await CreateCommand("test-executor", new TestData { Value = "test" });
-        var command = new OrchestratorCommand(orchestrator, commandId);
+        var command = new CommandHelper(orchestrator, commandId);
 
         // Act
         command.Run();
@@ -64,10 +64,10 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
             await Task.Delay(TimeSpan.FromSeconds(10), ct); // Much longer than timeout
         });
 
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
         var commandId = await CreateCommand("slow-executor", new TestData { Value = "test" },
             timeout: TimeSpan.FromMilliseconds(100), retryCount: 2);
-        var command = new OrchestratorCommand(orchestrator, commandId);
+        var command = new CommandHelper(orchestrator, commandId);
 
         // Act
         command.Run();
@@ -78,7 +78,7 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
         command.IsCompleted.Should().BeFalse();
         command.IsFailed.Should().BeFalse();
 
-        using var context = new OrchestratorDbContext(_dbContextOptions);
+        using var context = new OrchestratumDbContext(_dbContextOptions);
         var cmd = await context.Commands.FindAsync(commandId);
         cmd!.RetriesLeft.Should().Be(1); // Started with 2, decremented to 1
         cmd.IsRunning.Should().BeFalse();
@@ -92,10 +92,10 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
         configuration.RegisterExecutor("failing-executor", (sp, data, ct) =>
             throw new Exception("Test exception"));
 
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
         var commandId = await CreateCommand("failing-executor", new TestData { Value = "test" },
             retryCount: 0);
-        var command = new OrchestratorCommand(orchestrator, commandId);
+        var command = new CommandHelper(orchestrator, commandId);
 
         // Act
         command.Run();
@@ -105,7 +105,7 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
         command.IsCompleted.Should().BeFalse();
         command.IsFailed.Should().BeTrue();
 
-        using var context = new OrchestratorDbContext(_dbContextOptions);
+        using var context = new OrchestratumDbContext(_dbContextOptions);
         var cmd = await context.Commands.FindAsync(commandId);
         cmd!.IsFailed.Should().BeTrue();
         cmd.RetriesLeft.Should().Be(-1);
@@ -133,9 +133,9 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
             }
         });
 
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
         var commandId = await CreateCommand("cancellable-executor", new TestData { Value = "test" });
-        var command = new OrchestratorCommand(orchestrator, commandId);
+        var command = new CommandHelper(orchestrator, commandId);
 
         // Act
         command.Run();
@@ -161,16 +161,16 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
             await Task.Delay(TimeSpan.FromSeconds(10), ct);
         });
 
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
         var commandId = await CreateCommand("long-executor", new TestData { Value = "test" });
-        var command = new OrchestratorCommand(orchestrator, commandId);
+        var command = new CommandHelper(orchestrator, commandId);
 
         command.Run();
         await executionStarted.Task;
 
         // Act & Assert
         var act = () => command.Run();
-        act.Should().Throw<OrchestratorException>()
+        act.Should().Throw<OrchestratumException>()
             .WithMessage("*already running*");
 
         command.Dispose();
@@ -183,18 +183,18 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
         var configuration = CreateConfiguration();
         configuration.RegisterExecutor("test-executor", (sp, data, ct) => Task.CompletedTask);
 
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
         var commandId = await CreateCommand("test-executor", new TestData { Value = "test" });
 
         // Mark as completed
-        using (var context = new OrchestratorDbContext(_dbContextOptions))
+        using (var context = new OrchestratumDbContext(_dbContextOptions))
         {
             await context.Commands
                 .Where(c => c.Id == commandId)
                 .ExecuteUpdateAsync(s => s.SetProperty(c => c.IsCompleted, true));
         }
 
-        var command = new OrchestratorCommand(orchestrator, commandId);
+        var command = new CommandHelper(orchestrator, commandId);
 
         // Act
         command.Run();
@@ -218,11 +218,11 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
             return Task.CompletedTask;
         });
 
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
         var commandId = await CreateCommand("test-executor", new TestData { Value = "test" });
 
         // Simulate expired lock
-        using (var context = new OrchestratorDbContext(_dbContextOptions))
+        using (var context = new OrchestratumDbContext(_dbContextOptions))
         {
             await context.Commands
                 .Where(c => c.Id == commandId)
@@ -231,7 +231,7 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
                     .SetProperty(c => c.RunExpiresAt, DateTimeOffset.UtcNow.AddMinutes(-1)));
         }
 
-        var command = new OrchestratorCommand(orchestrator, commandId);
+        var command = new CommandHelper(orchestrator, commandId);
 
         // Act
         command.Run();
@@ -249,25 +249,26 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
         var configuration = CreateConfiguration();
         configuration.RegisterExecutor("test-executor", (sp, data, ct) => Task.CompletedTask);
 
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
 
         // Create command with invalid type
-        var commandDbo = new OrchestratorCommandDbo
+        var commandDbo = new CommandDbo
         {
             Executor = "test-executor",
+            Target = "default",
             DataType = "InvalidType.DoesNotExist, NonExistentAssembly",
             Data = "{\"Value\":\"test\"}",
             Timeout = TimeSpan.FromMinutes(1),
             RetriesLeft = 0
         };
 
-        using (var context = new OrchestratorDbContext(_dbContextOptions))
+        using (var context = new OrchestratumDbContext(_dbContextOptions))
         {
             context.Commands.Add(commandDbo);
             await context.SaveChangesAsync();
         }
 
-        var command = new OrchestratorCommand(orchestrator, commandDbo.Id);
+        var command = new CommandHelper(orchestrator, commandDbo.Id);
 
         // Act
         command.Run();
@@ -296,11 +297,11 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
             await Task.Delay(100, ct);
         });
 
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
         var commandId = await CreateCommand("test-executor", new TestData { Value = "test" });
 
-        var command1 = new OrchestratorCommand(orchestrator, commandId);
-        var command2 = new OrchestratorCommand(orchestrator, commandId);
+        var command1 = new CommandHelper(orchestrator, commandId);
+        var command2 = new CommandHelper(orchestrator, commandId);
 
         // Act - Try to run the same command twice in parallel
         command1.Run();
@@ -328,10 +329,10 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
             await Task.Delay(50, ct);
         });
 
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
         var timeout = TimeSpan.FromMinutes(5);
         var commandId = await CreateCommand("test-executor", new TestData { Value = "test" }, timeout: timeout);
-        var command = new OrchestratorCommand(orchestrator, commandId);
+        var command = new CommandHelper(orchestrator, commandId);
 
         var beforeRun = DateTimeOffset.UtcNow;
 
@@ -340,7 +341,7 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
         await executionStarted.Task;
 
         // Assert
-        using var context = new OrchestratorDbContext(_dbContextOptions);
+        using var context = new OrchestratumDbContext(_dbContextOptions);
         var cmd = await context.Commands.AsNoTracking().FirstAsync(c => c.Id == commandId);
 
         cmd.IsRunning.Should().BeTrue();
@@ -352,9 +353,9 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
 
     // Helper methods
 
-    private OrchestratorConfiguration CreateConfiguration()
+    private OrchestratumConfiguration CreateConfiguration()
     {
-        var configuration = new OrchestratorConfiguration
+        var configuration = new OrchestratumConfiguration
         {
             CommandPollingInterval = TimeSpan.FromMilliseconds(100),
             DefaultTimeout = TimeSpan.FromSeconds(5),
@@ -369,22 +370,23 @@ public class OrchestratorCommandTests : PostgreSqlTestBase, IClassFixture<Postgr
     private async Task<Guid> CreateCommand(string executorKey, object data,
         TimeSpan? timeout = null, int? retryCount = null)
     {
-        var commandDbo = new OrchestratorCommandDbo
+        var commandDbo = new CommandDbo
         {
             Executor = executorKey,
+            Target = "default",
             DataType = data.GetType().AssemblyQualifiedName!,
             Data = System.Text.Json.JsonSerializer.Serialize(data),
             Timeout = timeout ?? TimeSpan.FromMinutes(1),
             RetriesLeft = retryCount ?? 3
         };
 
-        using var context = new OrchestratorDbContext(_dbContextOptions);
+        using var context = new OrchestratumDbContext(_dbContextOptions);
         context.Commands.Add(commandDbo);
         await context.SaveChangesAsync();
         return commandDbo.Id;
     }
 
-    private static async Task WaitForCommandCompletion(OrchestratorCommand command, int timeoutMs = 5000)
+    private static async Task WaitForCommandCompletion(CommandHelper command, int timeoutMs = 5000)
     {
         var stopwatch = Stopwatch.StartNew();
         while (command.IsRunning && stopwatch.ElapsedMilliseconds < timeoutMs)

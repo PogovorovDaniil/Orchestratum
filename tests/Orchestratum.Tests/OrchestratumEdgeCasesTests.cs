@@ -1,16 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Orchestratum.Database;
-using Orchestratum.Services;
 
 namespace Orchestratum.Tests;
 
-public class OrchestratorEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreSqlFixture>
+public class OrchestratumEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreSqlFixture>
 {
     private readonly ServiceProvider _serviceProvider;
-    private readonly DbContextOptions<OrchestratorDbContext> _dbContextOptions;
+    private readonly DbContextOptions<OrchestratumDbContext> _dbContextOptions;
 
-    public OrchestratorEdgeCasesTests(PostgreSqlFixture fixture) : base(fixture)
+    public OrchestratumEdgeCasesTests(PostgreSqlFixture fixture) : base(fixture)
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -25,13 +24,13 @@ public class OrchestratorEdgeCasesTests : PostgreSqlTestBase, IClassFixture<Post
         // Arrange
         var configuration = CreateConfiguration();
         configuration.RegisterExecutor("test-executor", (sp, data, ct) => Task.CompletedTask);
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
 
         // Act
         await orchestrator.Append("test-executor", new TestData { Value = "test" }, timeout: TimeSpan.Zero);
 
         // Assert
-        using var context = new OrchestratorDbContext(_dbContextOptions);
+        using var context = new OrchestratumDbContext(_dbContextOptions);
         var command = await context.Commands.FirstAsync();
         command.Timeout.Should().Be(TimeSpan.Zero);
     }
@@ -42,13 +41,13 @@ public class OrchestratorEdgeCasesTests : PostgreSqlTestBase, IClassFixture<Post
         // Arrange
         var configuration = CreateConfiguration();
         configuration.RegisterExecutor("test-executor", (sp, data, ct) => Task.CompletedTask);
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
 
         // Act
         await orchestrator.Append("test-executor", new TestData { Value = "test" }, retryCount: -5);
 
         // Assert
-        using var context = new OrchestratorDbContext(_dbContextOptions);
+        using var context = new OrchestratumDbContext(_dbContextOptions);
         var command = await context.Commands.FirstAsync();
         command.RetriesLeft.Should().Be(-5);
     }
@@ -70,7 +69,7 @@ public class OrchestratorEdgeCasesTests : PostgreSqlTestBase, IClassFixture<Post
             return Task.CompletedTask;
         });
 
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
 
         // Add 100 commands
         for (int i = 0; i < 100; i++)
@@ -108,11 +107,11 @@ public class OrchestratorEdgeCasesTests : PostgreSqlTestBase, IClassFixture<Post
     public async Task Orchestrator_WithNullDbContextOptions_ShouldThrowOnFirstUse()
     {
         // Arrange
-        var configuration = new OrchestratorConfiguration();
+        var configuration = new OrchestratumConfiguration();
         configuration.RegisterExecutor("test-executor", (sp, data, ct) => Task.CompletedTask);
 
         // Act
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
         var act = async () => await orchestrator.Append("test-executor", new TestData { Value = "test" });
 
         // Assert
@@ -132,7 +131,7 @@ public class OrchestratorEdgeCasesTests : PostgreSqlTestBase, IClassFixture<Post
             return Task.CompletedTask;
         });
 
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
         var complexData = new ComplexData
         {
             Id = 123,
@@ -179,14 +178,15 @@ public class OrchestratorEdgeCasesTests : PostgreSqlTestBase, IClassFixture<Post
             return Task.CompletedTask;
         });
 
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
 
         // Create command with null data directly in database
-        using (var context = new OrchestratorDbContext(_dbContextOptions))
+        using (var context = new OrchestratumDbContext(_dbContextOptions))
         {
-            context.Commands.Add(new OrchestratorCommandDbo
+            context.Commands.Add(new CommandDbo
             {
                 Executor = "null-executor",
+                Target = "default",
                 DataType = typeof(TestData).AssemblyQualifiedName!,
                 Data = "null",
                 Timeout = TimeSpan.FromMinutes(1),
@@ -211,14 +211,15 @@ public class OrchestratorEdgeCasesTests : PostgreSqlTestBase, IClassFixture<Post
         // Arrange
         var configuration = CreateConfiguration();
         configuration.RegisterExecutor("test-executor", (sp, data, ct) => Task.CompletedTask);
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
 
         // Create a command marked as running with non-expired lock
-        using (var context = new OrchestratorDbContext(_dbContextOptions))
+        using (var context = new OrchestratumDbContext(_dbContextOptions))
         {
-            context.Commands.Add(new OrchestratorCommandDbo
+            context.Commands.Add(new CommandDbo
             {
                 Executor = "test-executor",
+                Target = "default",
                 DataType = typeof(TestData).AssemblyQualifiedName!,
                 Data = System.Text.Json.JsonSerializer.Serialize(new TestData { Value = "test" }),
                 Timeout = TimeSpan.FromMinutes(1),
@@ -235,7 +236,7 @@ public class OrchestratorEdgeCasesTests : PostgreSqlTestBase, IClassFixture<Post
         await Task.Delay(100);
 
         // Assert - command should be loaded but not executed due to valid lock
-        var internalOrchestrator = (Orchestrator)orchestrator;
+        var internalOrchestrator = (Services.Orchestratum)orchestrator;
         internalOrchestrator.commands.Should().HaveCount(1);
     }
 
@@ -261,7 +262,7 @@ public class OrchestratorEdgeCasesTests : PostgreSqlTestBase, IClassFixture<Post
             }
         });
 
-        var orchestrator = new Orchestrator(_serviceProvider, configuration);
+        var orchestrator = new Services.Orchestratum(_serviceProvider, configuration);
         await orchestrator.Append("cancellable-executor", new TestData { Value = "test" });
         await orchestrator.SyncCommands(CancellationToken.None);
 
@@ -309,8 +310,8 @@ public class OrchestratorEdgeCasesTests : PostgreSqlTestBase, IClassFixture<Post
             return Task.CompletedTask;
         });
 
-        var orchestrator1 = new Orchestrator(_serviceProvider, configuration1);
-        var orchestrator2 = new Orchestrator(_serviceProvider, configuration2);
+        var orchestrator1 = new Services.Orchestratum(_serviceProvider, configuration1);
+        var orchestrator2 = new Services.Orchestratum(_serviceProvider, configuration2);
 
         await orchestrator1.Append("executor1", new TestData { Value = "test1" });
         await orchestrator2.Append("executor2", new TestData { Value = "test2" });
@@ -332,9 +333,9 @@ public class OrchestratorEdgeCasesTests : PostgreSqlTestBase, IClassFixture<Post
 
     // Helper methods
 
-    private OrchestratorConfiguration CreateConfiguration()
+    private OrchestratumConfiguration CreateConfiguration()
     {
-        var configuration = new OrchestratorConfiguration
+        var configuration = new OrchestratumConfiguration
         {
             CommandPollingInterval = TimeSpan.FromMilliseconds(100),
             DefaultTimeout = TimeSpan.FromSeconds(5),
@@ -346,7 +347,7 @@ public class OrchestratorEdgeCasesTests : PostgreSqlTestBase, IClassFixture<Post
         return configuration;
     }
 
-    private static async Task WaitForAllCommandsToComplete(Orchestrator orchestrator, int timeoutMs = 5000)
+    private static async Task WaitForAllCommandsToComplete(Services.Orchestratum orchestrator, int timeoutMs = 5000)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 

@@ -2,7 +2,7 @@
 
 namespace Orchestratum.Services;
 
-internal class OrchestratorHostedService(IOrchestrator orchestrator) : BackgroundService
+internal class OrchestratumHostedService(IOrchestratum orchestrator) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

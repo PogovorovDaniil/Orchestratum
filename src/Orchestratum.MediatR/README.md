@@ -13,7 +13,7 @@ MediatR integration extension for Orchestratum - enables seamless integration of
 - **MediatR Integration**: Queue MediatR requests as background tasks
 - **Type-Safe**: Strongly-typed MediatR request handling
 - **Extension Methods**: Simple and intuitive API using extension methods
-- **All Orchestrator Features**: Full support for retries, timeouts, and distributed execution
+- **All Orchestratum Features**: Full support for retries, timeouts, and distributed execution
 
 ## Installation
 
@@ -39,7 +39,7 @@ builder.ConfigureServices(services =>
         opts.RegisterServicesFromAssembly(typeof(Program).Assembly));
     
     // Register Orchestratum with MediatR support
-    services.AddOchestrator((sp, opts) => opts
+    services.AddOrchestratum((sp, opts) => opts
         .ConfigureDbContext(opts => opts.UseNpgsql("Host=localhost;Database=myapp"))
         .RegisterMediatR());  // Enable MediatR integration
 });
@@ -80,23 +80,23 @@ public class SendEmailHandler : IRequestHandler<SendEmailCommand>
 ```csharp
 public class MyService
 {
-    private readonly IOrchestrator _orchestrator;
+    private readonly IOrchestratum _orchestratum;
 
-    public MyService(IOrchestrator orchestrator)
+    public MyService(IOrchestratum orchestratum)
     {
-        _orchestrator = orchestrator;
+        _orchestratum = orchestratum;
     }
 
     public void EnqueueEmails()
     {
         // Queue a MediatR request with default settings
-        _orchestrator.Append(new SendEmailCommand(
+        _orchestratum.Append(new SendEmailCommand(
             "user@example.com", 
             "Hello", 
             "Welcome to our service!"));
-        
+
         // Queue with custom timeout and retry settings
-        _orchestrator.Append(
+        _orchestratum.Append(
             new SendEmailCommand("admin@example.com", "Important", "Critical notification"),
             timeout: TimeSpan.FromMinutes(10),
             retryCount: 5);
@@ -108,7 +108,7 @@ public class MyService
 
 The package provides convenient extension methods:
 
-### `Append` for IOrchestrator
+### `Append` for IOrchestratum
 
 Queue a MediatR request as a background task:
 
@@ -148,7 +148,7 @@ public void RegisterMediatR()
 **Example:**
 
 ```csharp
-services.AddOchestrator((sp, opts) => opts
+services.AddOrchestratum((sp, opts) => opts
     .ConfigureDbContext(opts => opts.UseNpgsql(connectionString))
     .RegisterMediatR());
 ```
@@ -164,26 +164,26 @@ public record ProcessOrderCommand(int OrderId) : IRequest;
 
 public class ProcessOrderHandler : IRequestHandler<ProcessOrderCommand>
 {
-    private readonly IOrchestrator _orchestrator;
+    private readonly IOrchestratum _orchestratum;
     private readonly IOrderService _orderService;
 
-    public ProcessOrderHandler(IOrchestrator orchestrator, IOrderService orderService)
+    public ProcessOrderHandler(IOrchestratum orchestratum, IOrderService orderService)
     {
-        _orchestrator = orchestrator;
+        _orchestratum = orchestratum;
         _orderService = orderService;
     }
 
     public async Task Handle(ProcessOrderCommand request, CancellationToken cancellationToken)
     {
         var order = await _orderService.ProcessAsync(request.OrderId, cancellationToken);
-        
+
         // Queue follow-up commands
-        _orchestrator.Append(new SendEmailCommand(
+        _orchestratum.Append(new SendEmailCommand(
             order.CustomerEmail, 
             "Order Confirmation", 
             $"Your order #{order.Id} has been processed"));
-        
-        _orchestrator.Append(new GenerateInvoiceCommand(order.Id));
+
+        _orchestratum.Append(new GenerateInvoiceCommand(order.Id));
     }
 }
 ```

@@ -4,9 +4,9 @@ using Orchestratum.Services;
 namespace Orchestratum.Extentions;
 
 /// <summary>
-/// Extension methods for configuring orchestrator services in IServiceCollection.
+/// Extension methods for configuring orchestratum services in IServiceCollection.
 /// </summary>
-public static class OrchestratorServiceCollectionExtentions
+public static class OrchestratumServiceCollectionExtentions
 {
     extension(IServiceCollection services)
     {
@@ -14,16 +14,16 @@ public static class OrchestratorServiceCollectionExtentions
         /// Adds the orchestrator service to the dependency injection container.
         /// </summary>
         /// <param name="configurationBuilder">Action to configure the orchestrator options.</param>
-        public void AddOchestrator(Action<IServiceProvider, OrchestratorConfiguration> configurationBuilder)
+        public void AddOchestratum(Action<IServiceProvider, OrchestratumConfiguration> configurationBuilder)
         {
             services.AddSingleton(serviceProvider =>
             {
-                var configuration = new OrchestratorConfiguration();
+                var configuration = new OrchestratumConfiguration();
                 configurationBuilder(serviceProvider, configuration);
                 return configuration;
             });
-            services.AddSingleton<IOrchestrator, Orchestrator>();
-            services.AddHostedService<OrchestratorHostedService>();
+            services.AddSingleton<IOrchestratum, Services.Orchestratum>();
+            services.AddHostedService<OrchestratumHostedService>();
         }
     }
 }

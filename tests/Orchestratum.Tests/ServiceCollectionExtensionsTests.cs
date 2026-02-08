@@ -17,7 +17,7 @@ public class ServiceCollectionExtensionsTests : PostgreSqlTestBase, IClassFixtur
         var services = new ServiceCollection();
 
         // Act
-        services.AddOchestrator((sp, config) =>
+        services.AddOchestratum((sp, config) =>
         {
             config.ConfigureDbContext(opts => opts.UseNpgsql(ConnectionString));
         });
@@ -25,7 +25,7 @@ public class ServiceCollectionExtensionsTests : PostgreSqlTestBase, IClassFixtur
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
-        var orchestrator = serviceProvider.GetService<IOrchestrator>();
+        var orchestrator = serviceProvider.GetService<IOrchestratum>();
         orchestrator.Should().NotBeNull();
 
         var hostedService = services.FirstOrDefault(s => s.ServiceType == typeof(IHostedService));
@@ -40,7 +40,7 @@ public class ServiceCollectionExtensionsTests : PostgreSqlTestBase, IClassFixtur
         var configuredPollingInterval = TimeSpan.FromSeconds(5);
 
         // Act
-        services.AddOchestrator((sp, config) =>
+        services.AddOchestratum((sp, config) =>
         {
             config.ConfigureDbContext(opts => opts.UseNpgsql(ConnectionString));
             config.CommandPollingInterval = configuredPollingInterval;
@@ -50,7 +50,7 @@ public class ServiceCollectionExtensionsTests : PostgreSqlTestBase, IClassFixtur
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
-        var orchestrator = serviceProvider.GetRequiredService<IOrchestrator>();
+        var orchestrator = serviceProvider.GetRequiredService<IOrchestratum>();
         orchestrator.Should().NotBeNull();
     }
 
@@ -59,7 +59,7 @@ public class ServiceCollectionExtensionsTests : PostgreSqlTestBase, IClassFixtur
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddOchestrator((sp, config) =>
+        services.AddOchestratum((sp, config) =>
         {
             config.ConfigureDbContext(opts => opts.UseNpgsql(ConnectionString));
         });
@@ -67,8 +67,8 @@ public class ServiceCollectionExtensionsTests : PostgreSqlTestBase, IClassFixtur
         var serviceProvider = services.BuildServiceProvider();
 
         // Act
-        var orchestrator1 = serviceProvider.GetRequiredService<IOrchestrator>();
-        var orchestrator2 = serviceProvider.GetRequiredService<IOrchestrator>();
+        var orchestrator1 = serviceProvider.GetRequiredService<IOrchestratum>();
+        var orchestrator2 = serviceProvider.GetRequiredService<IOrchestratum>();
 
         // Assert
         orchestrator1.Should().BeSameAs(orchestrator2);
@@ -82,7 +82,7 @@ public class ServiceCollectionExtensionsTests : PostgreSqlTestBase, IClassFixtur
         services.AddSingleton<TestService>();
         IServiceProvider? capturedProvider = null;
 
-        services.AddOchestrator((sp, config) =>
+        services.AddOchestratum((sp, config) =>
         {
             capturedProvider = sp;
             config.ConfigureDbContext(opts => opts.UseNpgsql(ConnectionString));
@@ -90,7 +90,7 @@ public class ServiceCollectionExtensionsTests : PostgreSqlTestBase, IClassFixtur
 
         // Act
         var serviceProvider = services.BuildServiceProvider();
-        var orchestrator = serviceProvider.GetRequiredService<IOrchestrator>();
+        var orchestrator = serviceProvider.GetRequiredService<IOrchestratum>();
 
         // Assert
         capturedProvider.Should().NotBeNull();

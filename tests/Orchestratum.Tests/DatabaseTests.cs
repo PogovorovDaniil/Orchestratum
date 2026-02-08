@@ -2,9 +2,9 @@ using Orchestratum.Database;
 
 namespace Orchestratum.Tests;
 
-public class OrchestratorCommandDboTests : PostgreSqlTestBase, IClassFixture<PostgreSqlFixture>
+public class OrchestratumCommandDboTests : PostgreSqlTestBase, IClassFixture<PostgreSqlFixture>
 {
-    public OrchestratorCommandDboTests(PostgreSqlFixture fixture) : base(fixture)
+    public OrchestratumCommandDboTests(PostgreSqlFixture fixture) : base(fixture)
     {
     }
 
@@ -12,15 +12,17 @@ public class OrchestratorCommandDboTests : PostgreSqlTestBase, IClassFixture<Pos
     public void Constructor_ShouldGenerateNewGuid()
     {
         // Act
-        var command1 = new OrchestratorCommandDbo
+        var command1 = new CommandDbo
         {
             Executor = "test",
+            Target = "default",
             DataType = "string",
             Data = "test"
         };
-        var command2 = new OrchestratorCommandDbo
+        var command2 = new CommandDbo
         {
             Executor = "test",
+            Target = "default",
             DataType = "string",
             Data = "test"
         };
@@ -45,10 +47,11 @@ public class OrchestratorCommandDboTests : PostgreSqlTestBase, IClassFixture<Pos
         var completeAt = DateTimeOffset.UtcNow;
 
         // Act
-        var command = new OrchestratorCommandDbo
+        var command = new CommandDbo
         {
             Id = id,
             Executor = executor,
+            Target = "default",
             DataType = dataType,
             Data = data,
             Timeout = timeout,
@@ -78,9 +81,10 @@ public class OrchestratorCommandDboTests : PostgreSqlTestBase, IClassFixture<Pos
     public void DefaultValues_ShouldBeCorrect()
     {
         // Act
-        var command = new OrchestratorCommandDbo
+        var command = new CommandDbo
         {
             Executor = "test",
+            Target = "default",
             DataType = "string",
             Data = "test"
         };
@@ -96,9 +100,9 @@ public class OrchestratorCommandDboTests : PostgreSqlTestBase, IClassFixture<Pos
     }
 }
 
-public class OrchestratorDbContextTests : PostgreSqlTestBase, IClassFixture<PostgreSqlFixture>
+public class OrchestratumDbContextTests : PostgreSqlTestBase, IClassFixture<PostgreSqlFixture>
 {
-    public OrchestratorDbContextTests(PostgreSqlFixture fixture) : base(fixture)
+    public OrchestratumDbContextTests(PostgreSqlFixture fixture) : base(fixture)
     {
     }
     [Fact]
@@ -108,7 +112,7 @@ public class OrchestratorDbContextTests : PostgreSqlTestBase, IClassFixture<Post
         var options = CreateDbContextOptions();
 
         // Act
-        using var context = new OrchestratorDbContext(options);
+        using var context = new OrchestratumDbContext(options);
 
         // Assert
         context.Commands.Should().NotBeNull();
@@ -120,9 +124,10 @@ public class OrchestratorDbContextTests : PostgreSqlTestBase, IClassFixture<Post
         // Arrange
         var options = CreateDbContextOptions();
 
-        var command = new OrchestratorCommandDbo
+        var command = new CommandDbo
         {
             Executor = "test-executor",
+            Target = "default",
             DataType = "System.String",
             Data = "test data",
             Timeout = TimeSpan.FromMinutes(1),
@@ -131,7 +136,7 @@ public class OrchestratorDbContextTests : PostgreSqlTestBase, IClassFixture<Post
 
         // Act
         Guid commandId;
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             context.Commands.Add(command);
             await context.SaveChangesAsync();
@@ -139,7 +144,7 @@ public class OrchestratorDbContextTests : PostgreSqlTestBase, IClassFixture<Post
         }
 
         // Assert
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             var retrievedCommand = await context.Commands.FindAsync(commandId);
             retrievedCommand.Should().NotBeNull();
@@ -155,9 +160,10 @@ public class OrchestratorDbContextTests : PostgreSqlTestBase, IClassFixture<Post
         // Arrange
         var options = CreateDbContextOptions();
 
-        var command = new OrchestratorCommandDbo
+        var command = new CommandDbo
         {
             Executor = "test-executor",
+            Target = "default",
             DataType = "System.String",
             Data = "test data",
             Timeout = TimeSpan.FromMinutes(1),
@@ -166,7 +172,7 @@ public class OrchestratorDbContextTests : PostgreSqlTestBase, IClassFixture<Post
         };
 
         Guid commandId;
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             context.Commands.Add(command);
             await context.SaveChangesAsync();
@@ -174,7 +180,7 @@ public class OrchestratorDbContextTests : PostgreSqlTestBase, IClassFixture<Post
         }
 
         // Act
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             var commandToUpdate = await context.Commands.FindAsync(commandId);
             commandToUpdate!.IsCompleted = true;
@@ -183,7 +189,7 @@ public class OrchestratorDbContextTests : PostgreSqlTestBase, IClassFixture<Post
         }
 
         // Assert
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             var updatedCommand = await context.Commands.FindAsync(commandId);
             updatedCommand!.IsCompleted.Should().BeTrue();

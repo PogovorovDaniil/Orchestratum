@@ -9,19 +9,19 @@ namespace Orchestratum.Example.Database;
 /// This allows EF Core tools to create the context when running migration commands.
 /// 
 /// Usage:
-///   dotnet ef migrations add InitialOrchestrator --context OrchestratorDbContext
-///   dotnet ef database update --context OrchestratorDbContext
+///   dotnet ef migrations add InitialOrchestratum --context OrchestratumDbContext
+///   dotnet ef database update --context OrchestratumDbContext
 /// </summary>
-public class OrchestratorDbContextFactory : IDesignTimeDbContextFactory<OrchestratorDbContext>
+public class OrchestratorDbContextFactory : IDesignTimeDbContextFactory<OrchestratumDbContext>
 {
-    public OrchestratorDbContext CreateDbContext(string[] args)
+    public OrchestratumDbContext CreateDbContext(string[] args)
     {
-        var optionsBuilder = new DbContextOptionsBuilder<OrchestratorDbContext>();
+        var optionsBuilder = new DbContextOptionsBuilder<OrchestratumDbContext>();
 
         optionsBuilder.UseNpgsql(
-            "Host=localhost;Username=root;Password=root;Database=simpleOrchestrator", 
+            "Host=localhost;Username=root;Password=root;Database=orchestratum_example",
             opts => opts.MigrationsAssembly(typeof(OrchestratorDbContextFactory).Assembly));
 
-        return new OrchestratorDbContext(optionsBuilder.Options);
+        return new OrchestratumDbContext(optionsBuilder.Options);
     }
 }

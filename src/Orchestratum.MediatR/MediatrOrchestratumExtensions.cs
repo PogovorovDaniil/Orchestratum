@@ -4,30 +4,30 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Orchestratum.MediatR;
 
 /// <summary>
-/// Extension methods for integrating SimpleOrchestrator with MediatR.
+/// Extension methods for integrating Orchestratum with MediatR.
 /// </summary>
-public static class MediatrOrchestratorExtensions
+public static class MediatrOrchestratumExtensions
 {
     /// <summary>
     /// The executor key used for MediatR command execution.
     /// </summary>
     public const string MediatrExecutorKey = "mediatr";
 
-    extension(IOrchestrator orchestrator)
+    extension(IOrchestratum orchestrator)
     {
         /// <summary>
-        /// Appends a MediatR request to the orchestrator queue.
+        /// Appends a MediatR request to the orchestratum queue.
         /// </summary>
         /// <param name="request">The MediatR request to execute.</param>
         /// <param name="timeout">Optional timeout for request execution.</param>
         /// <param name="retryCount">Optional number of retry attempts.</param>
-        public void Append(IRequest request, TimeSpan? timeout = null, int? retryCount = null)
+        public void Append(IRequest request, string? targetKey = null, TimeSpan? timeout = null, int? retryCount = null)
         {
-            orchestrator.Append(MediatrExecutorKey, request, timeout, retryCount);
+            orchestrator.Append(MediatrExecutorKey, request, targetKey, timeout, retryCount);
         }
     }
 
-    extension(OrchestratorConfiguration orchestratorConfiguration)
+    extension(OrchestratumConfiguration orchestratorConfiguration)
     {
         /// <summary>
         /// Registers the MediatR executor in the orchestrator configuration.

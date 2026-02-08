@@ -6,9 +6,9 @@ namespace Orchestratum;
 /// <summary>
 /// Configuration options for the orchestrator.
 /// </summary>
-public class OrchestratorConfiguration
+public class OrchestratumConfiguration
 {
-    internal DbContextOptions<OrchestratorDbContext> contextOptions = new();
+    internal DbContextOptions<OrchestratumDbContext> contextOptions = new();
     internal Dictionary<string, ExecutorDelegate> storedExecutors = [];
 
     /// <summary>
@@ -17,7 +17,7 @@ public class OrchestratorConfiguration
     /// <param name="executorKey">The unique key to identify this executor.</param>
     /// <param name="executorDelegate">The delegate function that will execute tasks.</param>
     /// <returns>The configuration instance for method chaining.</returns>
-    public OrchestratorConfiguration RegisterExecutor(string executorKey, ExecutorDelegate executorDelegate)
+    public OrchestratumConfiguration RegisterExecutor(string executorKey, ExecutorDelegate executorDelegate)
     {
         storedExecutors[executorKey] = executorDelegate;
         return this;
@@ -28,9 +28,9 @@ public class OrchestratorConfiguration
     /// </summary>
     /// <param name="optionsAction">Action to configure the DbContext options.</param>
     /// <returns>The configuration instance for method chaining.</returns>
-    public OrchestratorConfiguration ConfigureDbContext(Action<DbContextOptionsBuilder> optionsAction)
+    public OrchestratumConfiguration ConfigureDbContext(Action<DbContextOptionsBuilder> optionsAction)
     {
-        var optionsBuilder = new DbContextOptionsBuilder<OrchestratorDbContext>()
+        var optionsBuilder = new DbContextOptionsBuilder<OrchestratumDbContext>()
             .EnableSensitiveDataLogging(false)
             .LogTo(_ => { });
         optionsAction(optionsBuilder);
@@ -39,7 +39,7 @@ public class OrchestratorConfiguration
     }
 
     /// <summary>
-    /// The interval at which the orchestrator polls the database for new commands.
+    /// The interval at which the orchestratum polls the database for new commands.
     /// Default: 1 minute.
     /// </summary>
     public TimeSpan CommandPollingInterval { get; set; } = TimeSpan.FromMinutes(1);
@@ -61,4 +61,11 @@ public class OrchestratorConfiguration
     /// Default: 3.
     /// </summary>
     public int DefaultRetryCount { get; set; } = 3;
+
+    /// <summary>
+    /// Key of this orchestrator instance.
+    /// Used to distinguish between multiple running instances when coordinating command execution.
+    /// Default: "default".
+    /// </summary>
+    public string InstanceKey { get; set; } = "default";
 }

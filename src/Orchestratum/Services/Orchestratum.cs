@@ -7,12 +7,12 @@ using System.Text.Json;
 namespace Orchestratum.Services;
 
 /// <summary>
-/// Main orchestrator implementation that manages background task execution with persistence and retries.
+/// Main orchestratum implementation that manages background task execution with persistence and retries.
 /// </summary>
-public class Orchestrator : IOrchestrator
+internal class Orchestratum : IOrchestratum
 {
     internal readonly IServiceProvider serviceProvider;
-    internal readonly DbContextOptions<OrchestratorDbContext> contextOptions;
+    internal readonly DbContextOptions<OrchestratumDbContext> contextOptions;
     internal readonly ILogger? logger;
 
     internal readonly TimeSpan lockTimeoutBuffer;
@@ -21,21 +21,21 @@ public class Orchestrator : IOrchestrator
 
     private readonly TimeSpan commandPollingInterval;
     internal readonly Dictionary<string, ExecutorDelegate> executors = [];
-    internal readonly HashSet<OrchestratorCommand> commands = [];
+    internal readonly HashSet<CommandHelper> commands = [];
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Orchestrator"/> class.
+    /// Initializes a new instance of the <see cref="Orchestratum"/> class.
     /// </summary>
     /// <param name="serviceProvider">The service provider for dependency injection.</param>
-    /// <param name="configuration">The orchestrator configuration.</param>
-    public Orchestrator(IServiceProvider serviceProvider, OrchestratorConfiguration configuration)
+    /// <param name="configuration">The orchestratum configuration.</param>
+    public Orchestratum(IServiceProvider serviceProvider, OrchestratumConfiguration configuration)
     {
         this.serviceProvider = serviceProvider;
-        logger = serviceProvider.GetService<ILogger<IOrchestrator>>();
+        logger = serviceProvider.GetService<ILogger<IOrchestratum>>();
 
         foreach (var executor in configuration.storedExecutors)
         {
-            if (executors.ContainsKey(executor.Key)) throw new OrchestratorException(
+            if (executors.ContainsKey(executor.Key)) throw new OrchestratumException(
                 $"Cannot register command '{executor.Key}': a command with this type already exists."
             );
             executors.Add(executor.Key, executor.Value);
@@ -46,35 +46,39 @@ public class Orchestrator : IOrchestrator
         defaultRetryCount = configuration.DefaultRetryCount;
         commandPollingInterval = configuration.CommandPollingInterval;
         contextOptions = configuration.contextOptions;
+        InstanceKey = configuration.InstanceKey;
     }
 
-    /// <inheritdoc/>
-    public Task Append(string executorKey, object data, TimeSpan? timeout = null, int? retryCount = null) =>
-        Append(executorKey, data.GetType(), data, timeout, retryCount);
+    public string InstanceKey { get; private set; }
 
     /// <inheritdoc/>
-    public async Task Append(string executorKey, Type dataType, object data, TimeSpan? timeout = null, int? retryCount = null)
+    public Task Append(string executorKey, object data, string? targetKey = null, TimeSpan? timeout = null, int? retryCount = null) =>
+        Append(executorKey, data.GetType(), data, targetKey, timeout, retryCount);
+
+    /// <inheritdoc/>
+    public async Task Append(string executorKey, Type dataType, object data, string? targetKey = null, TimeSpan? timeout = null, int? retryCount = null)
     {
-        if (!executors.ContainsKey(executorKey)) throw new OrchestratorException(
+        if (!executors.ContainsKey(executorKey)) throw new OrchestratumException(
                 $"Cannot append command: executor with type '{executorKey}' is not registered."
             );
 
         var dataSerialized = JsonSerializer.Serialize(data, dataType);
-        var commandDbo = new OrchestratorCommandDbo()
+        var commandDbo = new CommandDbo()
         {
             Executor = executorKey,
+            Target = targetKey ?? InstanceKey,
             DataType = dataType.AssemblyQualifiedName!,
             Data = dataSerialized,
             RetriesLeft = retryCount ?? defaultRetryCount,
             Timeout = timeout ?? defaultTimeout
         };
 
-        using (var context = new OrchestratorDbContext(contextOptions))
+        using (var context = new OrchestratumDbContext(contextOptions))
         {
             context.Add(commandDbo);
             await context.SaveChangesAsync();
         }
-        var command = new OrchestratorCommand(this, commandDbo.Id);
+        var command = new CommandHelper(this, commandDbo.Id);
         commands.Add(command);
 
         lock (waitPollingCts)
@@ -91,13 +95,13 @@ public class Orchestrator : IOrchestrator
     /// <param name="cancellationToken">Cancellation token.</param>
     public async Task SyncCommands(CancellationToken cancellationToken)
     {
-        using var context = new OrchestratorDbContext(contextOptions);
-        var commandDbos = context.Set<OrchestratorCommandDbo>();
-        var actualCommands = await commandDbos.Where(c => !c.IsCompleted && !c.IsFailed).Select(c => c.Id).ToListAsync(cancellationToken);
+        using var context = new OrchestratumDbContext(contextOptions);
+        var commandDbos = context.Set<CommandDbo>();
+        var actualCommands = await commandDbos.Where(c => !c.IsCompleted && !c.IsFailed && c.Target == InstanceKey).Select(c => c.Id).ToListAsync(cancellationToken);
         foreach (var commandId in actualCommands)
         {
             if (commands.Any(c => c.CommandId == commandId)) continue;
-            commands.Add(new OrchestratorCommand(this, commandId));
+            commands.Add(new CommandHelper(this, commandId));
         }
     }
 

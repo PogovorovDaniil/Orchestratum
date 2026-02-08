@@ -7,7 +7,7 @@ namespace Orchestratum.Tests;
 public class PostgreSqlFixture : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:17-alpine")
-        .WithDatabase("orchestrator_test")
+        .WithDatabase("orchestratum_test")
         .WithUsername("postgres")
         .WithPassword("postgres")
         .Build();
@@ -19,11 +19,11 @@ public class PostgreSqlFixture : IAsyncLifetime
         await _container.StartAsync();
         ConnectionString = _container.GetConnectionString();
 
-        var options = new DbContextOptionsBuilder<OrchestratorDbContext>()
+        var options = new DbContextOptionsBuilder<OrchestratumDbContext>()
             .UseNpgsql(ConnectionString)
             .Options;
 
-        using var context = new OrchestratorDbContext(options);
+        using var context = new OrchestratumDbContext(options);
         await context.Database.EnsureCreatedAsync();
     }
 
@@ -32,9 +32,9 @@ public class PostgreSqlFixture : IAsyncLifetime
         await _container.DisposeAsync();
     }
 
-    internal DbContextOptions<OrchestratorDbContext> CreateDbContextOptions()
+    internal DbContextOptions<OrchestratumDbContext> CreateDbContextOptions()
     {
-        return new DbContextOptionsBuilder<OrchestratorDbContext>()
+        return new DbContextOptionsBuilder<OrchestratumDbContext>()
             .UseNpgsql(ConnectionString)
             .Options;
     }
@@ -42,7 +42,7 @@ public class PostgreSqlFixture : IAsyncLifetime
     public async Task CleanDatabase()
     {
         var options = CreateDbContextOptions();
-        using var context = new OrchestratorDbContext(options);
-        await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE orchestrator_commands RESTART IDENTITY CASCADE");
+        using var context = new OrchestratumDbContext(options);
+        await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE orchestratum_commands RESTART IDENTITY CASCADE");
     }
 }

@@ -13,7 +13,7 @@
 - **Интеграция с MediatR**: Помещение запросов MediatR в очередь фоновых задач
 - **Типобезопасность**: Строго типизированная обработка запросов MediatR
 - **Методы расширения**: Простой и интуитивный API с использованием extension methods
-- **Все возможности Orchestrator**: Полная поддержка повторов, таймаутов и распределенного выполнения
+- **Все возможности Orchestratum**: Полная поддержка повторов, таймаутов и распределенного выполнения
 
 ## Установка
 
@@ -39,7 +39,7 @@ builder.ConfigureServices(services =>
         opts.RegisterServicesFromAssembly(typeof(Program).Assembly));
     
     // Регистрация Orchestratum с поддержкой MediatR
-    services.AddOchestrator((sp, opts) => opts
+    services.AddOrchestratum((sp, opts) => opts
         .ConfigureDbContext(opts => opts.UseNpgsql("Host=localhost;Database=myapp"))
         .RegisterMediatR());  // Включение интеграции с MediatR
 });
@@ -80,23 +80,23 @@ public class SendEmailHandler : IRequestHandler<SendEmailCommand>
 ```csharp
 public class MyService
 {
-    private readonly IOrchestrator _orchestrator;
+    private readonly IOrchestratum _orchestratum;
 
-    public MyService(IOrchestrator orchestrator)
+    public MyService(IOrchestratum orchestratum)
     {
-        _orchestrator = orchestrator;
+        _orchestratum = orchestratum;
     }
 
     public void EnqueueEmails()
     {
         // Постановка запроса MediatR в очередь с настройками по умолчанию
-        _orchestrator.Append(new SendEmailCommand(
+        _orchestratum.Append(new SendEmailCommand(
             "user@example.com", 
             "Привет", 
             "Добро пожаловать в наш сервис!"));
-        
+
         // Постановка в очередь с пользовательским таймаутом и повторами
-        _orchestrator.Append(
+        _orchestratum.Append(
             new SendEmailCommand("admin@example.com", "Важно", "Критическое уведомление"),
             timeout: TimeSpan.FromMinutes(10),
             retryCount: 5);
@@ -108,7 +108,7 @@ public class MyService
 
 Пакет предоставляет удобные методы расширения:
 
-### `Append` для IOrchestrator
+### `Append` для IOrchestratum
 
 Помещает запрос MediatR в очередь фоновых задач:
 
@@ -148,7 +148,7 @@ public void RegisterMediatR()
 **Пример:**
 
 ```csharp
-services.AddOchestrator((sp, opts) => opts
+services.AddOrchestratum((sp, opts) => opts
     .ConfigureDbContext(opts => opts.UseNpgsql(connectionString))
     .RegisterMediatR());
 ```
@@ -164,26 +164,26 @@ public record ProcessOrderCommand(int OrderId) : IRequest;
 
 public class ProcessOrderHandler : IRequestHandler<ProcessOrderCommand>
 {
-    private readonly IOrchestrator _orchestrator;
+    private readonly IOrchestratum _orchestratum;
     private readonly IOrderService _orderService;
 
-    public ProcessOrderHandler(IOrchestrator orchestrator, IOrderService orderService)
+    public ProcessOrderHandler(IOrchestratum orchestratum, IOrderService orderService)
     {
-        _orchestrator = orchestrator;
+        _orchestratum = orchestratum;
         _orderService = orderService;
     }
 
     public async Task Handle(ProcessOrderCommand request, CancellationToken cancellationToken)
     {
         var order = await _orderService.ProcessAsync(request.OrderId, cancellationToken);
-        
+
         // Постановка последующих команд в очередь
-        _orchestrator.Append(new SendEmailCommand(
+        _orchestratum.Append(new SendEmailCommand(
             order.CustomerEmail, 
             "Подтверждение заказа", 
             $"Ваш заказ #{order.Id} был обработан"));
-        
-        _orchestrator.Append(new GenerateInvoiceCommand(order.Id));
+
+        _orchestratum.Append(new GenerateInvoiceCommand(order.Id));
     }
 }
 ```

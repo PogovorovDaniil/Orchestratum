@@ -35,7 +35,7 @@ using Microsoft.EntityFrameworkCore;
 var builder = Host.CreateDefaultBuilder(args);
 builder.ConfigureServices(services =>
 {
-    services.AddOchestrator((sp, opts) => opts
+    services.AddOrchestratum((sp, opts) => opts
         .ConfigureDbContext(opts => 
             opts.UseNpgsql("Host=localhost;Database=myapp"))
         .RegisterExecutor("my-task", async (serviceProvider, data, cancellationToken) =>
@@ -54,20 +54,20 @@ builder.Build().Run();
 ```csharp
 public class MyService
 {
-    private readonly IOrchestrator _orchestrator;
+    private readonly IOrchestratum _orchestratum;
 
-    public MyService(IOrchestrator orchestrator)
+    public MyService(IOrchestratum orchestratum)
     {
-        _orchestrator = orchestrator;
+        _orchestratum = orchestratum;
     }
 
     public async Task EnqueueWork()
     {
         // Поставить задачу в очередь с настройками по умолчанию
-        await _orchestrator.Append("my-task", new MyTaskData { Value = "Hello" });
+        await _orchestratum.Append("my-task", new MyTaskData { Value = "Hello" });
 
         // Поставить в очередь с пользовательским таймаутом и количеством повторов
-        await _orchestrator.Append(
+        await _orchestratum.Append(
             "my-task", 
             new MyTaskData { Value = "World" },
             timeout: TimeSpan.FromMinutes(5),
@@ -82,7 +82,7 @@ public class MyService
 Оркестратор предоставляет несколько параметров конфигурации:
 
 ```csharp
-services.AddOchestrator((sp, opts) => opts
+services.AddOrchestratum((sp, opts) => opts
     .ConfigureDbContext(opts => opts.UseNpgsql(connectionString))
     .RegisterExecutor("executor-key", executorDelegate)
     .With(o =>
@@ -116,7 +116,7 @@ Orchestratum использует Entity Framework Core для сохранен�
 
 ### Создание миграций
 
-Поскольку `OrchestratorDbContext` находится в библиотеке, вам нужно создать фабрику времени разработки в вашем основном проекте для включения миграций:
+Поскольку `OrchestratumDbContext` находится в библиотеке, вам нужно создать фабрику времени разработки в вашем основном проекте для включения миграций:
 
 **Шаг 1:** Создайте класс фабрики в вашем проекте:
 
@@ -127,17 +127,17 @@ using Orchestratum.Database;
 
 namespace YourProject.Database;
 
-public class OrchestratorDbContextFactory : IDesignTimeDbContextFactory<OrchestratorDbContext>
+public class OrchestratumDbContextFactory : IDesignTimeDbContextFactory<OrchestratumDbContext>
 {
-    public OrchestratorDbContext CreateDbContext(string[] args)
+    public OrchestratumDbContext CreateDbContext(string[] args)
     {
-        var optionsBuilder = new DbContextOptionsBuilder<OrchestratorDbContext>();
+        var optionsBuilder = new DbContextOptionsBuilder<OrchestratumDbContext>();
         
         // Настройте ваш провайдер базы данных
         optionsBuilder.UseNpgsql("Host=localhost;Database=myapp;Username=user;Password=pass", 
-            opts => opts.MigrationsAssembly(typeof(OrchestratorDbContextFactory).Assembly.GetName().Name));
+            opts => opts.MigrationsAssembly(typeof(OrchestratumDbContextFactory).Assembly.GetName().Name));
 
-        return new OrchestratorDbContext(optionsBuilder.Options);
+        return new OrchestratumDbContext(optionsBuilder.Options);
     }
 }
 ```
@@ -146,18 +146,18 @@ public class OrchestratorDbContextFactory : IDesignTimeDbContextFactory<Orchestr
 
 ```bash
 # Добавить миграцию
-dotnet ef migrations add InitialOrchestrator --context OrchestratorDbContext
+dotnet ef migrations add InitialOrchestratum --context OrchestratumDbContext
 
 # Применить миграцию
-dotnet ef database update --context OrchestratorDbContext
+dotnet ef database update --context OrchestratumDbContext
 
 # Удалить последнюю миграцию (если необходимо)
-dotnet ef migrations remove --context OrchestratorDbContext
+dotnet ef migrations remove --context OrchestratumDbContext
 ```
 
 ### Схема базы данных
 
-Оркестратор хранит команды в таблице `orchestrator_commands` со следующими столбцами:
+Оркестратор хранит команды в таблице `orchestratum_commands` со следующими столбцами:
 - `id` - Уникальный идентификатор команды (GUID)
 - `executor` - Ключ исполнителя
 - `data_type` - Сериализованный тип данных
@@ -176,7 +176,7 @@ dotnet ef migrations remove --context OrchestratorDbContext
 Вы можете зарегистрировать несколько исполнителей для разных типов задач:
 
 ```csharp
-services.AddOchestrator((sp, opts) => opts
+services.AddOrchestratum((sp, opts) => opts
     .ConfigureDbContext(opts => opts.UseNpgsql(connectionString))
     .RegisterExecutor("send-email", async (sp, data, ct) =>
     {
@@ -198,7 +198,7 @@ services.AddOchestrator((sp, opts) => opts
 
 ```csharp
 // Эта задача будет повторена 5 раз в случае неудачи
-await _orchestrator.Append("my-task", data, retryCount: 5);
+await _orchestratum.Append("my-task", data, retryCount: 5);
 ```
 
 ### Обработка таймаутов
@@ -207,7 +207,7 @@ await _orchestrator.Append("my-task", data, retryCount: 5);
 
 ```csharp
 // Эта задача превысит время ожидания через 10 минут
-await _orchestrator.Append("long-task", data, timeout: TimeSpan.FromMinutes(10));
+await _orchestratum.Append("long-task", data, timeout: TimeSpan.FromMinutes(10));
 ```
 
 ### Распределенные сценарии

@@ -8,7 +8,7 @@
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 
 	<PackageId>Orchestratum</PackageId>
-	<Version>1.0.1-beta</Version>
+	<Version>1.0.2-beta</Version>
 	<Authors>Daniil Pogovorov</Authors>
 
 	<Description>A lightweight, persistent background task orchestrator for .NET applications with built-in retry logic, timeouts, and database persistence using Entity Framework Core.</Description>

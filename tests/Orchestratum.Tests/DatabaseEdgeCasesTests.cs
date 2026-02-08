@@ -15,9 +15,10 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         // Arrange
         var options = CreateDbContextOptions();
         var largeTimespan = TimeSpan.FromDays(365 * 100); // 100 years
-        var command = new OrchestratorCommandDbo
+        var command = new CommandDbo
         {
             Executor = "test-executor",
+            Target = "default",
             DataType = "System.String",
             Data = "test",
             Timeout = largeTimespan,
@@ -26,7 +27,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
 
         // Act
         Guid commandId;
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             context.Commands.Add(command);
             await context.SaveChangesAsync();
@@ -34,7 +35,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         }
 
         // Assert
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             var retrieved = await context.Commands.FindAsync(commandId);
             retrieved.Should().NotBeNull();
@@ -48,9 +49,10 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         // Arrange
         var options = CreateDbContextOptions();
         var longString = new string('x', 10000);
-        var command = new OrchestratorCommandDbo
+        var command = new CommandDbo
         {
             Executor = "test-executor",
+            Target = "default",
             DataType = "System.String",
             Data = longString,
             Timeout = TimeSpan.FromMinutes(1),
@@ -59,7 +61,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
 
         // Act
         Guid commandId;
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             context.Commands.Add(command);
             await context.SaveChangesAsync();
@@ -67,7 +69,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         }
 
         // Assert
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             var retrieved = await context.Commands.FindAsync(commandId);
             retrieved.Should().NotBeNull();
@@ -82,9 +84,10 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         // Arrange
         var options = CreateDbContextOptions();
         var specialData = "Test \"quotes\" and 'apostrophes' and \\backslashes\\ and \n newlines \r\n and \t tabs";
-        var command = new OrchestratorCommandDbo
+        var command = new CommandDbo
         {
             Executor = "test-executor",
+            Target = "default",
             DataType = "System.String",
             Data = specialData,
             Timeout = TimeSpan.FromMinutes(1),
@@ -93,7 +96,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
 
         // Act
         Guid commandId;
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             context.Commands.Add(command);
             await context.SaveChangesAsync();
@@ -101,7 +104,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         }
 
         // Assert
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             var retrieved = await context.Commands.FindAsync(commandId);
             retrieved.Should().NotBeNull();
@@ -114,9 +117,10 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
     {
         // Arrange
         var options = CreateDbContextOptions();
-        var command = new OrchestratorCommandDbo
+        var command = new CommandDbo
         {
             Executor = "test-executor",
+            Target = "default",
             DataType = "System.String",
             Data = "test",
             Timeout = TimeSpan.FromMinutes(1),
@@ -125,7 +129,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         };
 
         Guid commandId;
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             context.Commands.Add(command);
             await context.SaveChangesAsync();
@@ -133,8 +137,8 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         }
 
         // Act - Simulate concurrent updates
-        using var context1 = new OrchestratorDbContext(options);
-        using var context2 = new OrchestratorDbContext(options);
+        using var context1 = new OrchestratumDbContext(options);
+        using var context2 = new OrchestratumDbContext(options);
 
         var cmd1 = await context1.Commands.FindAsync(commandId);
         var cmd2 = await context2.Commands.FindAsync(commandId);
@@ -146,7 +150,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         await context2.SaveChangesAsync();
 
         // Assert - Last write wins in this scenario
-        using var verifyContext = new OrchestratorDbContext(options);
+        using var verifyContext = new OrchestratumDbContext(options);
         var final = await verifyContext.Commands.FindAsync(commandId);
         final!.RetriesLeft.Should().Be(1);
     }
@@ -156,9 +160,10 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
     {
         // Arrange
         var options = CreateDbContextOptions();
-        var commands = Enumerable.Range(0, 1000).Select(i => new OrchestratorCommandDbo
+        var commands = Enumerable.Range(0, 1000).Select(i => new CommandDbo
         {
             Executor = $"executor-{i % 10}",
+            Target = "default",
             DataType = "System.String",
             Data = $"data-{i}",
             Timeout = TimeSpan.FromMinutes(1),
@@ -166,14 +171,14 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         }).ToList();
 
         // Act
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             context.Commands.AddRange(commands);
             await context.SaveChangesAsync();
         }
 
         // Assert
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             var count = await context.Commands.CountAsync();
             count.Should().Be(1000);
@@ -185,9 +190,10 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
     {
         // Arrange
         var options = CreateDbContextOptions();
-        var command = new OrchestratorCommandDbo
+        var command = new CommandDbo
         {
             Executor = "test-executor",
+            Target = "default",
             DataType = "System.String",
             Data = "test",
             Timeout = TimeSpan.FromMinutes(1),
@@ -195,7 +201,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         };
 
         Guid commandId;
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             context.Commands.Add(command);
             await context.SaveChangesAsync();
@@ -203,7 +209,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         }
 
         // Act
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             var toDelete = await context.Commands.FindAsync(commandId);
             context.Commands.Remove(toDelete!);
@@ -211,7 +217,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         }
 
         // Assert
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             var deleted = await context.Commands.FindAsync(commandId);
             deleted.Should().BeNull();
@@ -227,9 +233,10 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
 
         var commands = new[]
         {
-            new OrchestratorCommandDbo
+            new CommandDbo
             {
                 Executor = "executor1",
+                Target = "default",
                 DataType = "System.String",
                 Data = "test1",
                 Timeout = TimeSpan.FromMinutes(1),
@@ -238,9 +245,10 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
                 IsFailed = false,
                 IsRunning = false
             },
-            new OrchestratorCommandDbo
+            new CommandDbo
             {
                 Executor = "executor2",
+                Target = "default",
                 DataType = "System.String",
                 Data = "test2",
                 Timeout = TimeSpan.FromMinutes(1),
@@ -249,9 +257,10 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
                 IsFailed = false,
                 IsRunning = false
             },
-            new OrchestratorCommandDbo
+            new CommandDbo
             {
                 Executor = "executor3",
+                Target = "default",
                 DataType = "System.String",
                 Data = "test3",
                 Timeout = TimeSpan.FromMinutes(1),
@@ -260,9 +269,10 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
                 IsFailed = false,
                 IsRunning = false
             },
-            new OrchestratorCommandDbo
+            new CommandDbo
             {
                 Executor = "executor4",
+                Target = "default",
                 DataType = "System.String",
                 Data = "test4",
                 Timeout = TimeSpan.FromMinutes(1),
@@ -273,14 +283,14 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
             }
         };
 
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             context.Commands.AddRange(commands);
             await context.SaveChangesAsync();
         }
 
         // Act & Assert
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             // Query for pending commands (not completed, not failed, has retries)
             var pending = await context.Commands
@@ -298,9 +308,10 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
     {
         // Arrange
         var options = CreateDbContextOptions();
-        var command = new OrchestratorCommandDbo
+        var command = new CommandDbo
         {
             Executor = "test-executor",
+            Target = "default",
             DataType = "System.String",
             Data = "test",
             Timeout = TimeSpan.FromMinutes(1),
@@ -309,7 +320,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         };
 
         Guid commandId;
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             context.Commands.Add(command);
             await context.SaveChangesAsync();
@@ -317,7 +328,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         }
 
         // Act
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             var updated = await context.Commands
                 .Where(c => c.Id == commandId)
@@ -329,7 +340,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         }
 
         // Assert
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             var retrieved = await context.Commands.FindAsync(commandId);
             retrieved!.IsRunning.Should().BeTrue();
@@ -342,9 +353,10 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
     {
         // Arrange
         var options = CreateDbContextOptions();
-        var command = new OrchestratorCommandDbo
+        var command = new CommandDbo
         {
             Executor = "test-executor",
+            Target = "default",
             DataType = "System.String",
             Data = "test",
             Timeout = TimeSpan.FromMinutes(1),
@@ -355,7 +367,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
 
         // Act
         Guid commandId;
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             context.Commands.Add(command);
             await context.SaveChangesAsync();
@@ -363,7 +375,7 @@ public class DatabaseEdgeCasesTests : PostgreSqlTestBase, IClassFixture<PostgreS
         }
 
         // Assert
-        using (var context = new OrchestratorDbContext(options))
+        using (var context = new OrchestratumDbContext(options))
         {
             var retrieved = await context.Commands.FindAsync(commandId);
             retrieved.Should().NotBeNull();

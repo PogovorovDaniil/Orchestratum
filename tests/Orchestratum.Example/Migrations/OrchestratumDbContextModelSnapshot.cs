@@ -10,8 +10,8 @@ using Orchestratum.Database;
 
 namespace Orchestratum.Example.Migrations
 {
-    [DbContext(typeof(OrchestratorDbContext))]
-    partial class OrchestratorDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(OrchestratumDbContext))]
+    partial class OrchestratumDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
@@ -22,7 +22,7 @@ namespace Orchestratum.Example.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Orchestratum.Database.OrchestratorCommandDbo", b =>
+            modelBuilder.Entity("Orchestratum.Database.CommandDbo", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
@@ -47,6 +47,10 @@ namespace Orchestratum.Example.Migrations
                         .HasColumnType("text")
                         .HasColumnName("executor");
 
+                    b.Property<DateTimeOffset?>("FailedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("failed_at");
+
                     b.Property<bool>("IsCompleted")
                         .HasColumnType("boolean")
                         .HasColumnName("is_completed");
@@ -67,6 +71,11 @@ namespace Orchestratum.Example.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("run_expires_at");
 
+                    b.Property<string>("Target")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("target");
+
                     b.Property<TimeSpan>("Timeout")
                         .HasColumnType("interval")
                         .HasColumnName("timeout");
@@ -79,7 +88,7 @@ namespace Orchestratum.Example.Migrations
 
                     b.HasIndex("IsRunning");
 
-                    b.ToTable("orchestrator_commands");
+                    b.ToTable("orchestratum_commands");
                 });
 #pragma warning restore 612, 618
         }

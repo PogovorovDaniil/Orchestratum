@@ -3,7 +3,7 @@ using Orchestratum.MediatR;
 
 namespace Orchestratum.Example;
 
-public class Test1HostedService(IOrchestrator orchestrator) : BackgroundService
+public class Test1HostedService(IOrchestratum orchestrator) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -17,7 +17,7 @@ public class Test1HostedService(IOrchestrator orchestrator) : BackgroundService
     }
 }
 
-public class Test2HostedService(IOrchestrator orchestrator) : BackgroundService
+public class Test2HostedService(IOrchestratum orchestrator) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -31,7 +31,7 @@ public class Test2HostedService(IOrchestrator orchestrator) : BackgroundService
     }
 }
 
-public class Test3HostedService(IOrchestrator orchestrator) : BackgroundService
+public class Test3HostedService(IOrchestratum orchestrator) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -45,7 +45,7 @@ public class Test3HostedService(IOrchestrator orchestrator) : BackgroundService
     }
 }
 
-public class Test4HostedService(IOrchestrator orchestrator) : BackgroundService
+public class Test4HostedService(IOrchestratum orchestrator) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
