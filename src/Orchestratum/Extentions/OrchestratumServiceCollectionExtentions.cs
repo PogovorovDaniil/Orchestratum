@@ -22,6 +22,7 @@ public static class OrchestratumServiceCollectionExtentions
                 configurationBuilder(serviceProvider, configuration);
                 return configuration;
             });
+            services.AddSingleton(sp => sp.GetRequiredService<OrchestratumConfiguration>().contextOptions);
             services.AddSingleton<IOrchestratum, Services.Orchestratum>();
             services.AddHostedService<OrchestratumHostedService>();
         }

@@ -17,11 +17,11 @@ builder.ConfigureServices(services =>
     services.AddSerilog();
     services.AddHostedService<Test1HostedService>();
     services.AddHostedService<Test2HostedService>();
-    // services.AddHostedService<Test3HostedService>();
-    // services.AddHostedService<Test4HostedService>();
+    services.AddHostedService<Test3HostedService>();
+    services.AddHostedService<Test4HostedService>();
     services.AddOchestratum((sp, opts) =>
     {
-        opts.InstanceKey = "serv1";
+        opts.InstanceKey = "example-instance";
         opts
             .ConfigureDbContext(opts => opts.UseNpgsql("Host=localhost;Username=root;Password=root;Database=orchestratum_example"))
             .RegisterMediatR();
