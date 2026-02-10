@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Orchestratum.Database;
-using Orchestratum.Extentions;
+using System.Collections.Concurrent;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -16,31 +16,33 @@ public abstract class TestApplication : IAsyncLifetime
         .WithPassword("postgres")
         .Build();
 
-    public TestApplication()
-    {
-        ServiceCollection services = new ServiceCollection();
-        services.AddOchestratum((sp, config) =>
-        {
-            config.ConfigureDbContext(opt => opt.UseNpgsql(postgresContainer.GetConnectionString()));
-            config.CommandPollingInterval = TimeSpan.FromMilliseconds(100);
-            config.DefaultTimeout = TimeSpan.FromSeconds(30);
-            config.DefaultRetryCount = 3;
-            config.InstanceKey = "test-instance";
-            ConfigureOrchestratum(sp, config);
-        });
+    private readonly ConcurrentBag<string> _log = [];
 
-        ServiceProvider = services.BuildServiceProvider();
-    }
+    public void ClearLog() => _log.Clear();
+    public List<string> GetLog() => _log.ToList();
+    public void AddLog(string message) => _log.Add(message);
 
-    public virtual void ConfigureOrchestratum(IServiceProvider serviceProvider, OrchestratumConfiguration configuration) { }
+    public abstract void ConfigureOrchestratum(OrchServiceConfiguration configuration);
 
-    public IServiceProvider ServiceProvider { get; }
+    public IServiceProvider ServiceProvider { get; private set; } = null!;
     public IOrchestratum Orchestratum { get => field ??= ServiceProvider.GetRequiredService<IOrchestratum>(); }
-    public DbContextOptions<OrchestratumDbContext> ContextOptions { get => field ??= ServiceProvider.GetRequiredService<DbContextOptions<OrchestratumDbContext>>(); }
+    public DbContextOptions<OrchDbContext> ContextOptions { get => field ??= ServiceProvider.GetRequiredService<DbContextOptions<OrchDbContext>>(); }
 
     public async Task InitializeAsync()
     {
         await postgresContainer.StartAsync();
+        ServiceCollection services = new ServiceCollection();
+        services.AddSingleton(this);
+        services.AddOchestratum((config) =>
+        {
+            config.ConfigureDbContext(opt => opt.UseNpgsql(postgresContainer.GetConnectionString()));
+            config.CommandPollingInterval = TimeSpan.FromMilliseconds(100);
+            config.InstanceKey = "test-instance";
+            ConfigureOrchestratum(config);
+        });
+
+        ServiceProvider = services.BuildServiceProvider();
+
         await CreatedDatabase();
         await CleanDatabase();
         var hostedServices = ServiceProvider.GetServices<IHostedService>();
@@ -56,13 +58,13 @@ public abstract class TestApplication : IAsyncLifetime
 
     private async Task CreatedDatabase()
     {
-        using var context = new OrchestratumDbContext(ContextOptions);
+        using var context = new OrchDbContext(ContextOptions, "ORCH_");
         await context.Database.EnsureCreatedAsync();
     }
 
     public async Task CleanDatabase()
     {
-        using var context = new OrchestratumDbContext(ContextOptions);
+        using var context = new OrchDbContext(ContextOptions, "ORCH_");
         await context.Commands.ExecuteDeleteAsync();
     }
 }

@@ -1,0 +1,88 @@
+@page "/"
+@inject NavigationManager Navigation
+
+<PageTitle>Home</PageTitle>
+
+<h1>Orchestratum Demo Application</h1>
+
+<div class="alert alert-info mt-4">
+    <h4>Welcome to Orchestratum!</h4>
+    <p>
+        This is a demo application showcasing the capabilities of the <strong>Orchestratum</strong> library 
+        for orchestrating commands and workflows in .NET applications.
+    </p>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">📦 Orders</h5>
+                <p class="card-text">
+                    Create and manage orders. When an order is created, it triggers an automated workflow:
+                </p>
+                <ul>
+                    <li>Order processing</li>
+                    <li>Payment processing</li>
+                    <li>Shipping</li>
+                    <li>Notifications</li>
+                </ul>
+                <button class="btn btn-primary" @onclick="@(() => Navigation.NavigateTo("/orders"))">
+                    Go to Orders
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">⚙️ Commands</h5>
+                <p class="card-text">
+                    View all commands in the orchestration queue. Monitor their status and execution progress.
+                </p>
+                <ul>
+                    <li>Pending commands</li>
+                    <li>Running commands</li>
+                    <li>Completed/Failed commands</li>
+                </ul>
+                <button class="btn btn-primary" @onclick="@(() => Navigation.NavigateTo("/commands"))">
+                    Go to Commands
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">📧 Notifications</h5>
+                <p class="card-text">
+                    View all email notifications sent during order processing.
+                </p>
+                <button class="btn btn-primary" @onclick="@(() => Navigation.NavigateTo("/notifications"))">
+                    Go to Notifications
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">✨ Key Features</h5>
+                <ul>
+                    <li>Command/Handler pattern</li>
+                    <li>Persistent queue with retries</li>
+                    <li>Command chaining (OnSuccess/OnFailure)</li>
+                    <li>Delayed execution</li>
+                    <li>Timeout management</li>
+                    <li>Distributed execution</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+

@@ -1,6 +1,5 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Orchestratum.MediatR/Orchestratum.MediatR.csproj" />
     <Project Path="src/Orchestratum/Orchestratum.csproj" />
   </Folder>
   <Folder Name="/tests/">

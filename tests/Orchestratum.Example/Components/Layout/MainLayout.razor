@@ -1,0 +1,41 @@
+@inherits LayoutComponentBase
+
+<div class="page">
+    <div class="sidebar">
+        <nav class="flex-column">
+            <div class="nav-item px-3">
+                <h4 class="text-white">Orchestratum Demo</h4>
+            </div>
+            <div class="nav-item px-3">
+                <a class="nav-link" href="/">
+                    <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                </a>
+            </div>
+            <div class="nav-item px-3">
+                <a class="nav-link" href="/orders">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Orders
+                </a>
+            </div>
+            <div class="nav-item px-3">
+                <a class="nav-link" href="/commands">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Commands
+                </a>
+            </div>
+            <div class="nav-item px-3">
+                <a class="nav-link" href="/notifications">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Notifications
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <span class="text-muted">Orchestratum Example Application</span>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
