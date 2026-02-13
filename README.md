@@ -2,25 +2,22 @@
 
 [![NuGet](https://img.shields.io/nuget/v/Orchestratum.svg)](https://www.nuget.org/packages/Orchestratum/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.txt)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/PogovorovDaniil/Orchestratum)
 
-A lightweight, persistent background task orchestrator for .NET applications with built-in retry logic, timeouts, and database persistence using Entity Framework Core.
-
-## 📦 Packages
-
-| Package | Description | NuGet |
-|---------|-------------|-------|
-| **Orchestratum** | Core orchestration library | [![NuGet](https://img.shields.io/nuget/v/Orchestratum.svg)](https://www.nuget.org/packages/Orchestratum/) |
-| **Orchestratum.MediatR** | MediatR integration | [![NuGet](https://img.shields.io/nuget/v/Orchestratum.MediatR.svg)](https://www.nuget.org/packages/Orchestratum.MediatR/) |
+A powerful and flexible command orchestration library for .NET applications with persistent storage, automatic retries, distributed execution support, and command chaining capabilities.
 
 ## ✨ Features
 
-- **Persistent Task Queue** - Tasks stored in database, survive application restarts
-- **Automatic Retries** - Configurable retry logic for failed tasks
-- **Timeout Management** - Per-task or default execution timeouts
-- **Distributed Lock** - Prevents duplicate execution in multi-instance deployments
-- **Flexible Executors** - Register custom executors for different task types
-- **Background Processing** - Runs as hosted service
-- **EF Core Integration** - Works with any EF Core supported database
+- **Command/Handler Pattern** - Clean separation of command definitions and execution logic
+- **Persistent Command Queue** - Commands are stored in a database with full state tracking
+- **Command Chaining** - Support for conditional command execution based on success, failure, or cancellation
+- **Automatic Retries** - Configurable retry logic with automatic retry management
+- **Timeout Management** - Per-command timeout configuration with automatic timeout detection
+- **Distributed Execution** - Database-level locking for safe multi-instance deployments with target-based routing
+- **Typed Commands** - Type-safe command definitions with input and output types
+- **Flexible Registration** - Automatic command discovery or explicit registration
+- **Background Processing** - Runs as a hosted service in ASP.NET Core or generic .NET hosts
+- **Entity Framework Core Integration** - Works with any EF Core supported database
 
 ## 🚀 Quick Start
 
@@ -28,115 +25,130 @@ A lightweight, persistent background task orchestrator for .NET applications wit
 
 ```bash
 dotnet add package Orchestratum
-# Or with MediatR integration
-dotnet add package Orchestratum.MediatR
 ```
 
-### Basic Usage (without MediatR)
+### 1. Define a Command
 
 ```csharp
-// 1. Configure services
-services.AddOchestrator((sp, opts) =>
+using Orchestratum.Contract;
+
+// Command with input only
+public class SendEmailCommand : OrchCommand<EmailData>
 {
-    opts.ConfigureDbContext(dbOpts => 
-        dbOpts.UseNpgsql("Host=localhost;Database=myapp"));
+    public override TimeSpan Timeout => TimeSpan.FromMinutes(2);
+    public override int RetryCount => 5;
+}
 
-    opts.RegisterExecutor("send-email", async (serviceProvider, data, cancellationToken) =>
-    {
-        var emailService = serviceProvider.GetRequiredService<IEmailService>();
-        var emailData = (EmailData)data;
-        await emailService.SendAsync(emailData, cancellationToken);
-    });
-
-    // Configure options
-    opts.DefaultTimeout = TimeSpan.FromMinutes(5);
-    opts.DefaultRetryCount = 3;
-    opts.CommandPollingInterval = TimeSpan.FromSeconds(30);
-});
-
-// 2. Inject IOrchestrator and enqueue tasks
-public class MyService
+// Command with input and output
+[OrchCommand("generate_report")]
+public class GenerateReportCommand : OrchCommand<ReportRequest, ReportResult>
 {
-    private readonly IOrchestrator _orchestrator;
+    public override TimeSpan Timeout => TimeSpan.FromMinutes(10);
 
-    public MyService(IOrchestrator orchestrator)
+    // Chain another command on success
+    protected override IEnumerable<IOrchCommand> OnSuccess(ReportResult output)
     {
-        _orchestrator = orchestrator;
-    }
-
-    public async Task SendEmail(string to, string subject, string body)
-    {
-        // Enqueue with default settings
-        await _orchestrator.Append("send-email", new EmailData 
+        yield return new SendEmailCommand 
         { 
-            To = to, 
-            Subject = subject, 
-            Body = body 
-        });
-
-        // Or with custom timeout and retry count
-        await _orchestrator.Append(
-            "send-email", 
-            new EmailData { To = to, Subject = subject, Body = body },
-            timeout: TimeSpan.FromMinutes(10),
-            retryCount: 5
-        );
+            Input = new EmailData 
+            { 
+                To = "admin@example.com",
+                Subject = "Report Generated",
+                Body = $"Report {output.ReportId} was generated"
+            }
+        };
     }
 }
 ```
 
-### Usage with MediatR
+### 2. Implement Command Handler
 
 ```csharp
-// 1. Configure services
-services.AddMediatR(opts => 
-    opts.RegisterServicesFromAssembly(typeof(Program).Assembly));
+using Orchestratum.Contract;
 
-services.AddOchestrator((sp, opts) =>
-{
-    opts.ConfigureDbContext(dbOpts => dbOpts.UseNpgsql("Host=localhost;Database=myapp"));
-    opts.RegisterMediatR();  // Enable MediatR integration
-});
-
-// 2. Define MediatR request and handler
-public record SendEmailCommand(string To, string Subject, string Body) : IRequest;
-
-public class SendEmailHandler : IRequestHandler<SendEmailCommand>
+public class SendEmailCommandHandler : IOrchCommandHandler<SendEmailCommand>
 {
     private readonly IEmailService _emailService;
 
-    public SendEmailHandler(IEmailService emailService)
+    public SendEmailCommandHandler(IEmailService emailService)
     {
         _emailService = emailService;
     }
 
-    public async Task Handle(SendEmailCommand request, CancellationToken cancellationToken)
+    public async Task<IOrchResult<SendEmailCommand>> Execute(
+        SendEmailCommand command, 
+        CancellationToken cancellationToken)
     {
-        await _emailService.SendAsync(request.To, request.Subject, request.Body, cancellationToken);
+        try
+        {
+            await _emailService.SendAsync(command.Input, cancellationToken);
+            return command.CreateResult(OrchResultStatus.Success);
+        }
+        catch (Exception)
+        {
+            return command.CreateResult(OrchResultStatus.Failed);
+        }
     }
 }
+```
 
-// 3. Queue MediatR requests
-public class MyService
+### 3. Configure Services
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
+
+var builder = Host.CreateDefaultBuilder(args);
+builder.ConfigureServices(services =>
 {
-    private readonly IOrchestrator _orchestrator;
+    // Register application services
+    services.AddSingleton<IEmailService, EmailService>();
 
-    public MyService(IOrchestrator orchestrator)
+    // Configure Orchestratum
+    services.AddOchestratum(opts =>
     {
-        _orchestrator = orchestrator;
+        // Configure database
+        opts.ConfigureDbContext(db => 
+            db.UseNpgsql("Host=localhost;Database=myapp"));
+
+        // Register commands and handlers from assemblies
+        opts.RegisterCommands(typeof(Program).Assembly);
+        opts.RegisterHandlers(typeof(Program).Assembly);
+
+        // Configure options
+        opts.CommandPollingInterval = TimeSpan.FromSeconds(5);
+        opts.LockTimeoutBuffer = TimeSpan.FromSeconds(10);
+        opts.MaxCommandPull = 100;
+        opts.InstanceKey = "default"; // For distributed scenarios
+    });
+});
+
+builder.Build().Run();
+```
+
+### 4. Enqueue Commands
+
+```csharp
+public class ReportController : ControllerBase
+{
+    private readonly IOrchestratum _orchestratum;
+
+    public ReportController(IOrchestratum orchestratum)
+    {
+        _orchestratum = orchestratum;
     }
 
-    public void SendEmail(string to, string subject, string body)
+    [HttpPost("generate")]
+    public async Task<IActionResult> GenerateReport(ReportRequest request)
     {
-        // Simply append MediatR request
-        _orchestrator.Append(new SendEmailCommand(to, subject, body));
+        var command = new GenerateReportCommand
+        {
+            Input = request
+        };
 
-        // Or with custom settings
-        _orchestrator.Append(
-            new SendEmailCommand(to, subject, body),
-            timeout: TimeSpan.FromMinutes(10),
-            retryCount: 5
-        );
+        await _orchestratum.Push(command);
+
+        return Accepted(new { commandId = command.Id });
     }
 }
 ```
@@ -144,8 +156,7 @@ public class MyService
 ## 📖 Documentation
 
 For detailed documentation, see:
-- [Orchestratum Core Documentation](src/Orchestratum/README.md)
-- [Orchestratum.MediatR Documentation](src/Orchestratum.MediatR/README.md)
+- [Orchestratum Documentation](src/Orchestratum/README.md)
 
 ## 🌐 Language Versions
 
